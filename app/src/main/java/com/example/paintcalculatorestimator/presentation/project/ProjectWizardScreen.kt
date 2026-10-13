@@ -1,6 +1,13 @@
 package com.example.paintcalculatorestimator.presentation.project
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.ui.semantics.*
+import com.example.paintcalculatorestimator.ui.theme.*
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -36,6 +43,7 @@ import com.example.paintcalculatorestimator.domain.model.UnitType
 import com.example.paintcalculatorestimator.presentation.navigation.Screen
 import com.example.paintcalculatorestimator.presentation.wall.ResultRow
 import com.example.paintcalculatorestimator.utils.HouseRoomInput
+import androidx.compose.ui.tooling.preview.Preview
 import java.util.Locale
 import kotlinx.coroutines.launch
 
@@ -48,114 +56,62 @@ fun ProjectWizardScreen(
     viewModel: ProjectViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val currentStep by viewModel.currentStep.collectAsState()
     val validationError by viewModel.validationError.collectAsState()
     val currency by appPreferences.currencyFlow.collectAsState(initial = "PKR")
-
     val focusRequesters = remember { mutableMapOf<String, FocusRequester>() }
-    fun getFocusRequester(key: String): FocusRequester {
-        return focusRequesters.getOrPut(key) { FocusRequester() }
-    }
-
+    fun getFocusRequester(key: String) = focusRequesters.getOrPut(key) { FocusRequester() }
     LaunchedEffect(Unit) {
-        viewModel.firstInvalidField.collect { fieldId ->
-            focusRequesters[fieldId]?.requestFocus()
-        }
+        viewModel.firstInvalidField.collect { fieldId -> focusRequesters[fieldId]?.requestFocus() }
     }
-
-    LaunchedEffect(key1 = projectId) {
-        if (projectId > 0) {
-            viewModel.loadProject(projectId)
-        }
+    LaunchedEffect(projectId) { if (projectId > 0) viewModel.loadProject(projectId) }
+    LaunchedEffect(validationError) {
+        validationError?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show(); viewModel.clearError() }
     }
-
-    LaunchedEffect(key1 = validationError) {
-        validationError?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.clearError()
-        }
-    }
-
+    BackHandler(enabled = currentStep > 1) { viewModel.previousStep() }
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "House & Building Estimator", fontWeight = FontWeight.Bold) },
+                title = { Text(if (projectId > 0) "Edit project" else "New project", style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        if (currentStep > 1) {
-                            viewModel.previousStep()
-                        } else {
-                            navController.popBackStack()
-                        }
-                    }) {
-                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                    IconButton(onClick = { if (currentStep > 1) viewModel.previousStep() else navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-        ) {
-            WizardStepper(currentStep = currentStep)
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(modifier = Modifier.weight(1f)) {
-                AnimatedContent(
-                    targetState = currentStep,
-                    label = "stepTransition"
-                ) { step ->
-                    when (step) {
-                        1 -> ProjectTypeSelectionStep(viewModel)
-                        2 -> HouseDetailsStep(viewModel, ::getFocusRequester)
-                        3 -> RoomBuilderStep(viewModel)
-                        4 -> BoundaryWallStep(viewModel, ::getFocusRequester)
-                        5 -> MaterialPricingStep(viewModel, ::getFocusRequester)
-                        6 -> HouseEstimateResultStep(viewModel, currency, navController)
+        },
+        bottomBar = {
+            Column(Modifier.navigationBarsPadding().imePadding()) {
+                if (currentStep < 6) {
+                    Surface(color = MaterialTheme.colorScheme.background) {
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                            Button(onClick = { viewModel.nextStep() }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp), shape = CircleShape) {
+                                Text(if (currentStep == 5) "Review estimate  ›" else "Continue  ›")
+                            }
+                            if (currentStep == 1) {
+                                Text("You can change this before saving your project.",
+                                    Modifier.fillMaxWidth().padding(top = 8.dp), textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
                 }
+                com.example.paintcalculatorestimator.adsManager.NativeAdView()
             }
-
-            // Bottom Navigation Actions
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (currentStep > 1 && currentStep < 6) {
-                    OutlinedButton(
-                        onClick = { viewModel.previousStep() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(text = "Back")
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                }
-
-                if (currentStep > 1 && currentStep < 6) {
-                    Button(
-                        onClick = { viewModel.nextStep() },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(text = "Continue")
-                    }
+        }
+    ) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)) {
+            WizardStepper(currentStep)
+            Spacer(Modifier.height(20.dp))
+            AnimatedContent(currentStep, modifier = Modifier.weight(1f), label = "projectStep") { step ->
+                when (step) {
+                    1 -> ProjectTypeSelectionStep(viewModel)
+                    2 -> HouseDetailsStep(viewModel, ::getFocusRequester)
+                    3 -> RoomBuilderStep(viewModel)
+                    4 -> BoundaryWallStep(viewModel, ::getFocusRequester)
+                    5 -> MaterialPricingStep(viewModel, ::getFocusRequester)
+                    6 -> HouseEstimateResultStep(viewModel, currency, navController)
                 }
             }
         }
@@ -164,60 +120,19 @@ fun ProjectWizardScreen(
 
 @Composable
 fun WizardStepper(currentStep: Int) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val steps = listOf("Type", "Info", "Rooms", "Boundary", "Pricing", "Summary")
-        steps.forEachIndexed { index, label ->
-            val stepNum = index + 1
-            val isActive = stepNum == currentStep
-            val isCompleted = stepNum < currentStep
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(MaterialTheme.shapes.extraLarge)
-                        .background(
-                            when {
-                                isActive -> MaterialTheme.colorScheme.primary
-                                isCompleted -> MaterialTheme.colorScheme.primaryContainer
-                                else -> MaterialTheme.colorScheme.surfaceVariant
-                            }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isCompleted) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    } else {
-                        Text(
-                            text = stepNum.toString(),
-                            color = if (isActive) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = label,
-                    fontSize = 10.sp,
-                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+    val steps = listOf("Type", "Info", "Rooms", "Boundary", "Pricing", "Summary")
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().semantics {
+            progressBarRangeInfo = ProgressBarRangeInfo(currentStep.toFloat(), 1f..6f, 4)
+        }, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            steps.indices.forEach { index ->
+                Box(Modifier.weight(1f).height(5.dp).clip(CircleShape)
+                    .background(if (index < currentStep) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant))
             }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Step $currentStep of 6", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            Text(steps[(currentStep - 1).coerceIn(steps.indices)], style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -225,70 +140,42 @@ fun WizardStepper(currentStep: Int) {
 @Composable
 fun ProjectTypeSelectionStep(viewModel: ProjectViewModel) {
     val selectedType by viewModel.projectType.collectAsState()
-    val types = listOf(
-        "House", "Market", "Plaza", "Guest House", 
-        "Office", "Shop", "Warehouse", "School", "Other / Custom"
-    )
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "What do you want to build?",
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 20.sp,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-        
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            items(types.size) { index ->
+    val types = listOf("House", "Market", "Plaza", "Guest House", "Office", "Shop", "Warehouse", "School", "Other / Custom")
+    val accents = listOf(Color(0xFF7662CB), Color(0xFFC77864), Color(0xFF4586B9), Color(0xFFB99040), Color(0xFF358F76))
+    Column(Modifier.fillMaxSize()) {
+        Text("What are you building?", style = MaterialTheme.typography.headlineSmall)
+        Text("Pick a project type to get started with rooms, materials and labor.",
+            Modifier.padding(top = 6.dp, bottom = 18.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
+            items(types.size, span = { index -> GridItemSpan(if (index == types.lastIndex) 2 else 1) }) { index ->
                 val type = types[index]
-                val isSelected = type == selectedType
-                
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-                    ),
-                    border = BorderStroke(
-                        width = 2.dp,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp)
-                        .clickable { viewModel.setProjectType(type) }
+                val selected = type == selectedType
+                val symbol = when(type) {
+                    "House", "Guest House" -> EstimatorSymbol.HOUSE
+                    "Market", "Shop" -> EstimatorSymbol.SHOP
+                    "Other / Custom" -> EstimatorSymbol.PLAN
+                    else -> EstimatorSymbol.BUILDING
+                }
+                Surface(
+                    modifier = Modifier.fillMaxWidth().selectable(selected, role = Role.RadioButton) { viewModel.setProjectType(type) },
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f) else MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = when (type) {
-                                    "House" -> Icons.Default.Home
-                                    "Market" -> Icons.Default.ShoppingCart
-                                    "Plaza" -> Icons.Default.Build
-                                    "Guest House" -> Icons.Default.Star
-                                    "Office" -> Icons.Default.Email
-                                    "Shop" -> Icons.Default.List
-                                    "Warehouse" -> Icons.Default.PlayArrow
-                                    "School" -> Icons.Default.Info
-                                    else -> Icons.Default.Settings
-                                },
-                                contentDescription = null,
-                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = type,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                            )
+                    if (index == types.lastIndex) {
+                        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            IconTile(symbol)
+                            Text(type, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                            if (selected) Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                        }
+                    } else {
+                        Column(Modifier.padding(14.dp).heightIn(min = 90.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                IconTile(symbol, accents[index % accents.size])
+                                if (selected) Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                            }
+                            Text(type, style = MaterialTheme.typography.titleSmall)
                         }
                     }
                 }
@@ -298,117 +185,61 @@ fun ProjectTypeSelectionStep(viewModel: ProjectViewModel) {
 }
 
 @Composable
-fun HouseDetailsStep(
-    viewModel: ProjectViewModel,
-    getFocusRequester: (String) -> FocusRequester
-) {
+fun HouseDetailsStep(viewModel: ProjectViewModel, getFocusRequester: (String) -> FocusRequester) {
     val name by viewModel.projectName.collectAsState()
     val location by viewModel.projectLocation.collectAsState()
     val notes by viewModel.projectNotes.collectAsState()
     val ut by viewModel.unitType.collectAsState()
     val laborRate by viewModel.laborRatePerSqFt.collectAsState()
     val globalSlab by viewModel.slabThicknessGlobal.collectAsState()
-
     val projectNameError by viewModel.projectNameError.collectAsState()
     val projectLocationError by viewModel.projectLocationError.collectAsState()
     val laborRatePerSqFtError by viewModel.laborRatePerSqFtError.collectAsState()
     val slabThicknessGlobalError by viewModel.slabThicknessGlobalError.collectAsState()
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            Text(text = "Step 2: Project Specifications", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "Define basic layout and pricing preferences for the construction.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Tell us about the project", style = MaterialTheme.typography.headlineSmall)
+            Text("Keep your project details and construction preferences together.",
+                Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-
         item {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { viewModel.projectName.value = it },
-                label = { Text("Project Name (e.g. Plaza Phase 1)") },
-                modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("projectName")),
-                singleLine = true,
-                isError = projectNameError != null,
-                supportingText = if (projectNameError != null) { { Text(projectNameError!!) } } else null
-            )
-        }
-
-        item {
-            OutlinedTextField(
-                value = location,
-                onValueChange = { viewModel.projectLocation.value = it },
-                label = { Text("Location") },
-                modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("projectLocation")),
-                singleLine = true,
-                isError = projectLocationError != null,
-                supportingText = if (projectLocationError != null) { { Text(projectLocationError!!) } } else null
-            )
-        }
-
-        item {
-            OutlinedTextField(
-                value = notes,
-                onValueChange = { viewModel.projectNotes.value = it },
-                label = { Text("Notes / Description") },
-                modifier = Modifier.fillMaxWidth(),
-                maxLines = 3
-            )
-        }
-
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Unit System Preference", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = ut == UnitType.METRIC,
-                            onClick = { viewModel.unitType.value = UnitType.METRIC },
-                            label = { Text("Metric (meters/cm)") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        FilterChip(
-                            selected = ut == UnitType.IMPERIAL,
-                            onClick = { viewModel.unitType.value = UnitType.IMPERIAL },
-                            label = { Text("Imperial (feet/inches)") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
+            EstimatePanel {
+                Text("PROJECT", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                EstimateTextField(name, { viewModel.projectName.value = it }, label = { Text("Project name") },
+                    modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("projectName")), singleLine = true,
+                    isError = projectNameError != null, supportingText = projectNameError?.let { { Text(it) } })
+                EstimateTextField(location, { viewModel.projectLocation.value = it }, label = { Text("Site / location") },
+                    modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("projectLocation")), singleLine = true,
+                    isError = projectLocationError != null, supportingText = projectLocationError?.let { { Text(it) } })
+                EstimateTextField(notes, { viewModel.projectNotes.value = it }, label = { Text("Project notes (optional)") },
+                    modifier = Modifier.fillMaxWidth(), minLines = 3)
             }
         }
-
         item {
-            OutlinedTextField(
-                value = globalSlab,
-                onValueChange = { viewModel.slabThicknessGlobal.value = it },
-                label = { Text("Global Roof Slab Thickness (${if (ut == UnitType.METRIC) "cm" else "in"})") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("slabThicknessGlobal")),
-                singleLine = true,
-                isError = slabThicknessGlobalError != null,
-                supportingText = if (slabThicknessGlobalError != null) { { Text(slabThicknessGlobalError!!) } } else null
-            )
+            EstimatePanel {
+                Text("MEASUREMENTS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Unit system", style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FilterChip(selected = ut == UnitType.METRIC, onClick = { viewModel.unitType.value = UnitType.METRIC },
+                        label = { Text("Metric · m / cm") }, modifier = Modifier.weight(1f))
+                    FilterChip(selected = ut == UnitType.IMPERIAL, onClick = { viewModel.unitType.value = UnitType.IMPERIAL },
+                        label = { Text("Imperial · ft / in") }, modifier = Modifier.weight(1f))
+                }
+                EstimateTextField(globalSlab, { viewModel.slabThicknessGlobal.value = it },
+                    label = { Text("Roof slab thickness (${if (ut == UnitType.METRIC) "cm" else "in"})") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("slabThicknessGlobal")), singleLine = true,
+                    isError = slabThicknessGlobalError != null, supportingText = slabThicknessGlobalError?.let { { Text(it) } })
+            }
         }
-
         item {
-            OutlinedTextField(
-                value = laborRate,
-                onValueChange = { viewModel.laborRatePerSqFt.value = it },
-                label = { Text("Labour Rate per sq ft ($)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("laborRatePerSqFt")),
-                singleLine = true,
-                isError = laborRatePerSqFtError != null,
-                supportingText = if (laborRatePerSqFtError != null) { { Text(laborRatePerSqFtError!!) } } else null
-            )
+            EstimatePanel {
+                Text("LABOR", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                EstimateTextField(laborRate, { viewModel.laborRatePerSqFt.value = it }, label = { Text("Labor rate per sq ft") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("laborRatePerSqFt")), singleLine = true,
+                    isError = laborRatePerSqFtError != null, supportingText = laborRatePerSqFtError?.let { { Text(it) } })
+            }
         }
     }
 }
@@ -419,89 +250,72 @@ fun RoomBuilderStep(viewModel: ProjectViewModel) {
     val projectType by viewModel.projectType.collectAsState()
     val ut by viewModel.unitType.collectAsState()
     var showAddRoomDialog by remember { mutableStateOf(false) }
-
     val unitStr = if (ut == UnitType.METRIC) "m" else "ft"
     val thicknessUnitStr = if (ut == UnitType.METRIC) "cm" else "in"
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(text = "Step 3: Area/Room Planner", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
-                Text(text = "${rooms.size} planning areas added", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Button(onClick = { showAddRoomDialog = true }) {
-                Text("+ Add Area")
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Add your rooms", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceVariant) {
+                Text("${rooms.size} added", Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium)
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (rooms.isEmpty()) {
-            Box(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "No construction areas added yet.\nTap '+ Add Area' to add layouts.", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.secondary, fontSize = 14.sp)
+        Text("Plan each space, including openings and optional roof slabs.", Modifier.padding(top = 6.dp, bottom = 16.dp),
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
+            if (rooms.isEmpty()) {
+                item {
+                    EstimatePanel {
+                        IconTile(EstimatorSymbol.HOUSE)
+                        Text("Make room for your first space", style = MaterialTheme.typography.titleMedium)
+                        Text("Add a bedroom, shop, office or custom area to begin your estimate.",
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(rooms.size) { index ->
-                    val rm = rooms[index]
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = if (rm.quantity > 1) "${rm.type}: ${rm.name} (x${rm.quantity})" else "${rm.type}: ${rm.name}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
-                                Text(
-                                    text = "Dimensions: ${rm.length} x ${rm.width} x ${rm.height} $unitStr | Thickness: ${rm.thickness} $thicknessUnitStr",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "Material: ${rm.materialType} | Roof Slab: ${if (rm.hasRoof) "Yes" else "No"} | Washroom: ${if (rm.isWashroomEnabled) "Yes (${rm.washroomLength}x${rm.washroomWidth}$unitStr)" else "No"}",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            IconButton(onClick = { viewModel.removeRoom(index) }) {
-                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
-                            }
+            items(rooms.size) { index ->
+                val rm = rooms[index]
+                OutlinedCard(colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()) {
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        IconTile(EstimatorSymbol.HOUSE, when(index % 3) { 0 -> Color(0xFFC77864); 1 -> Color(0xFF4586B9); else -> Color(0xFFB99040) })
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(if (rm.quantity > 1) "${rm.name} × ${rm.quantity}" else rm.name, style = MaterialTheme.typography.titleSmall)
+                            Text("${rm.length} × ${rm.width} × ${rm.height} $unitStr",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${rm.materialType} · ${rm.thickness} $thicknessUnitStr${if(rm.hasRoof) " · Roof" else ""}${if(rm.isWashroomEnabled) " · Washroom" else ""}",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = { viewModel.removeRoom(index) }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Remove ${rm.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
+            item {
+                OutlinedButton(onClick = { showAddRoomDialog = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+                    shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))) {
+                    Icon(Icons.Default.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp))
+                    Text(if (rooms.isEmpty()) "Add a room or area" else "Add another room")
+                }
+            }
+        }
+        Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+            Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("ROOMS / AREAS", style = MaterialTheme.typography.labelSmall)
+                    Text(rooms.sumOf { it.quantity }.toString(), style = MaterialTheme.typography.titleMedium)
+                }
+                Column(Modifier.weight(2f)) {
+                    Text("TOTAL FLOOR AREA", style = MaterialTheme.typography.labelSmall)
+                    Text("${String.format(Locale.US, "%.1f", rooms.sumOf { it.length * it.width * it.quantity })} ${unitStr}²", style = MaterialTheme.typography.titleMedium)
+                }
+            }
         }
     }
-
     if (showAddRoomDialog) {
-        AddRoomDialog(
-            projectType = projectType,
-            existingRooms = rooms,
-            unitStr = unitStr,
-            thicknessUnitStr = thicknessUnitStr,
-            onDismiss = { showAddRoomDialog = false },
-            onAdd = { newRoom ->
-                viewModel.addRoom(newRoom)
-                showAddRoomDialog = false
-            }
-        )
+        AddRoomDialog(projectType = projectType, existingRooms = rooms, unitStr = unitStr, thicknessUnitStr = thicknessUnitStr,
+            onDismiss = { showAddRoomDialog = false }, onAdd = { viewModel.addRoom(it); showAddRoomDialog = false })
     }
 }
 
@@ -539,7 +353,12 @@ fun AddRoomDialog(
     var thickness by remember { mutableStateOf(if (unitStr == "m") "23" else "9") }
     var materialType by remember { mutableStateOf("Brick") }
     var doorsCount by remember { mutableStateOf("1") }
+    val isMetric = unitStr == "m"
+    var doorsWidth by remember { mutableStateOf(if (isMetric) "0.9" else "3.0") }
+    var doorsHeight by remember { mutableStateOf(if (isMetric) "2.1" else "7.0") }
     var windowsCount by remember { mutableStateOf("1") }
+    var windowsWidth by remember { mutableStateOf(if (isMetric) "1.2" else "4.0") }
+    var windowsHeight by remember { mutableStateOf(if (isMetric) "1.2" else "4.0") }
     var hasRoof by remember { mutableStateOf(true) }
     var quantity by remember { mutableStateOf("1") }
 
@@ -549,7 +368,11 @@ fun AddRoomDialog(
     var washroomHeight by remember { mutableStateOf(if (unitStr == "m") "2.4" else "8.0") }
     var washroomThickness by remember { mutableStateOf(if (unitStr == "m") "11.5" else "4.5") }
     var washroomDoorsCount by remember { mutableStateOf("1") }
+    var washroomDoorsWidth by remember { mutableStateOf(if (isMetric) "0.75" else "2.5") }
+    var washroomDoorsHeight by remember { mutableStateOf(if (isMetric) "2.0" else "6.5") }
     var washroomWindowsCount by remember { mutableStateOf("1") }
+    var washroomWindowsWidth by remember { mutableStateOf(if (isMetric) "0.6" else "2.0") }
+    var washroomWindowsHeight by remember { mutableStateOf(if (isMetric) "0.6" else "2.0") }
     var washroomMaterialType by remember { mutableStateOf("Brick") }
 
     // Validation State
@@ -561,16 +384,24 @@ fun AddRoomDialog(
     var thicknessError by remember { mutableStateOf<String?>(null) }
     var quantityError by remember { mutableStateOf<String?>(null) }
     var doorsCountError by remember { mutableStateOf<String?>(null) }
+    var doorsWidthError by remember { mutableStateOf<String?>(null) }
+    var doorsHeightError by remember { mutableStateOf<String?>(null) }
     var windowsCountError by remember { mutableStateOf<String?>(null) }
+    var windowsWidthError by remember { mutableStateOf<String?>(null) }
+    var windowsHeightError by remember { mutableStateOf<String?>(null) }
 
     var washroomLengthError by remember { mutableStateOf<String?>(null) }
     var washroomWidthError by remember { mutableStateOf<String?>(null) }
     var washroomHeightError by remember { mutableStateOf<String?>(null) }
     var washroomThicknessError by remember { mutableStateOf<String?>(null) }
     var washroomDoorsCountError by remember { mutableStateOf<String?>(null) }
+    var washroomDoorsWidthError by remember { mutableStateOf<String?>(null) }
+    var washroomDoorsHeightError by remember { mutableStateOf<String?>(null) }
     var washroomWindowsCountError by remember { mutableStateOf<String?>(null) }
+    var washroomWindowsWidthError by remember { mutableStateOf<String?>(null) }
+    var washroomWindowsHeightError by remember { mutableStateOf<String?>(null) }
 
-    val focusRequesters = remember { List(14) { FocusRequester() } }
+    val focusRequesters = remember { List(22) { FocusRequester() } }
 
     fun validate(): Boolean {
         var isValid = true
@@ -596,15 +427,43 @@ fun AddRoomDialog(
         check(4, thickness, { thicknessError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "wall thickness") }
         check(5, quantity, { quantityError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveInteger(it, "quantity") }
         check(6, doorsCount, { doorsCountError = it }) { com.example.paintcalculatorestimator.utils.Validator.validateNonNegativeInteger(it, "doors count") }
-        check(7, windowsCount, { windowsCountError = it }) { com.example.paintcalculatorestimator.utils.Validator.validateNonNegativeInteger(it, "windows count") }
+        if ((doorsCount.toIntOrNull() ?: 0) > 0) {
+            check(7, doorsWidth, { doorsWidthError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "door width") }
+            check(8, doorsHeight, { doorsHeightError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "door height") }
+        } else {
+            doorsWidthError = null
+            doorsHeightError = null
+        }
+        check(9, windowsCount, { windowsCountError = it }) { com.example.paintcalculatorestimator.utils.Validator.validateNonNegativeInteger(it, "windows count") }
+        if ((windowsCount.toIntOrNull() ?: 0) > 0) {
+            check(10, windowsWidth, { windowsWidthError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "window width") }
+            check(11, windowsHeight, { windowsHeightError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "window height") }
+        } else {
+            windowsWidthError = null
+            windowsHeightError = null
+        }
 
         if (isWashroomEnabled) {
-            check(8, washroomLength, { washroomLengthError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom length") }
-            check(9, washroomWidth, { washroomWidthError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom width") }
-            check(10, washroomHeight, { washroomHeightError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom height") }
-            check(11, washroomThickness, { washroomThicknessError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom wall thickness") }
-            check(12, washroomDoorsCount, { washroomDoorsCountError = it }) { com.example.paintcalculatorestimator.utils.Validator.validateNonNegativeInteger(it, "washroom doors count") }
-            check(13, washroomWindowsCount, { washroomWindowsCountError = it }) { com.example.paintcalculatorestimator.utils.Validator.validateNonNegativeInteger(it, "washroom windows count") }
+            check(12, washroomLength, { washroomLengthError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom length") }
+            check(13, washroomWidth, { washroomWidthError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom width") }
+            check(14, washroomHeight, { washroomHeightError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom height") }
+            check(15, washroomThickness, { washroomThicknessError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom wall thickness") }
+            check(16, washroomDoorsCount, { washroomDoorsCountError = it }) { com.example.paintcalculatorestimator.utils.Validator.validateNonNegativeInteger(it, "washroom doors count") }
+            if ((washroomDoorsCount.toIntOrNull() ?: 0) > 0) {
+                check(17, washroomDoorsWidth, { washroomDoorsWidthError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom door width") }
+                check(18, washroomDoorsHeight, { washroomDoorsHeightError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom door height") }
+            } else {
+                washroomDoorsWidthError = null
+                washroomDoorsHeightError = null
+            }
+            check(19, washroomWindowsCount, { washroomWindowsCountError = it }) { com.example.paintcalculatorestimator.utils.Validator.validateNonNegativeInteger(it, "washroom windows count") }
+            if ((washroomWindowsCount.toIntOrNull() ?: 0) > 0) {
+                check(20, washroomWindowsWidth, { washroomWindowsWidthError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom vent/window width") }
+                check(21, washroomWindowsHeight, { washroomWindowsHeightError = it }) { com.example.paintcalculatorestimator.utils.Validator.validatePositiveNumber(it, "washroom vent/window height") }
+            } else {
+                washroomWindowsWidthError = null
+                washroomWindowsHeightError = null
+            }
         }
 
         if (!isValid && firstInvalidIdx != -1) {
@@ -614,15 +473,15 @@ fun AddRoomDialog(
         return isValid
     }
 
-    LaunchedEffect(name, length, width, height, thickness, quantity, doorsCount, windowsCount,
-        isWashroomEnabled, washroomLength, washroomWidth, washroomHeight, washroomThickness, washroomDoorsCount, washroomWindowsCount) {
+    LaunchedEffect(name, length, width, height, thickness, quantity, doorsCount, doorsWidth, doorsHeight, windowsCount, windowsWidth, windowsHeight,
+        isWashroomEnabled, washroomLength, washroomWidth, washroomHeight, washroomThickness, washroomDoorsCount, washroomDoorsWidth, washroomDoorsHeight, washroomWindowsCount, washroomWindowsWidth, washroomWindowsHeight) {
         if (isValidationActive) {
             validate()
         }
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
+        OutlinedCard(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
             shape = MaterialTheme.shapes.large
         ) {
@@ -637,7 +496,7 @@ fun AddRoomDialog(
                 item {
                     Text("Select Area Category", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = type,
                             onValueChange = {},
                             readOnly = true,
@@ -665,7 +524,7 @@ fun AddRoomDialog(
                 }
 
                 item {
-                    OutlinedTextField(
+                    EstimateTextField(
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Name / Label") },
@@ -678,7 +537,7 @@ fun AddRoomDialog(
 
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = length,
                             onValueChange = { length = it },
                             label = { Text("Length ($unitStr)") },
@@ -688,7 +547,7 @@ fun AddRoomDialog(
                             isError = lengthError != null,
                             supportingText = if (lengthError != null) { { Text(lengthError!!) } } else null
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = width,
                             onValueChange = { width = it },
                             label = { Text("Width ($unitStr)") },
@@ -703,7 +562,7 @@ fun AddRoomDialog(
 
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = height,
                             onValueChange = { height = it },
                             label = { Text("Wall Height ($unitStr)") },
@@ -713,7 +572,7 @@ fun AddRoomDialog(
                             isError = heightError != null,
                             supportingText = if (heightError != null) { { Text(heightError!!) } } else null
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = thickness,
                             onValueChange = { thickness = it },
                             label = { Text("Wall Thickness ($thicknessUnitStr)") },
@@ -727,7 +586,7 @@ fun AddRoomDialog(
                 }
 
                 item {
-                    OutlinedTextField(
+                    EstimateTextField(
                         value = quantity,
                         onValueChange = { quantity = it },
                         label = { Text("Quantity (Number of identical areas)") },
@@ -745,21 +604,22 @@ fun AddRoomDialog(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Wall Material", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("Wall Material", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = materialType == "Brick", onClick = { materialType = "Brick" })
-                            Text("Brick", modifier = Modifier.clickable { materialType = "Brick" }, fontSize = 13.sp)
+                            Text("Brick", modifier = Modifier.clickable { materialType = "Brick" }, fontSize = 10.sp)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             RadioButton(selected = materialType == "Block", onClick = { materialType = "Block" })
-                            Text("Block", modifier = Modifier.clickable { materialType = "Block" }, fontSize = 13.sp)
+                            Text("Block", modifier = Modifier.clickable { materialType = "Block" }, fontSize = 10.sp)
                         }
                     }
                 }
 
                 item {
+                    Text("Openings (Doors & Windows)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = doorsCount,
                             onValueChange = { doorsCount = it },
                             label = { Text("Doors Count") },
@@ -769,16 +629,70 @@ fun AddRoomDialog(
                             isError = doorsCountError != null,
                             supportingText = if (doorsCountError != null) { { Text(doorsCountError!!) } } else null
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = windowsCount,
                             onValueChange = { windowsCount = it },
                             label = { Text("Windows Count") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f).focusRequester(focusRequesters[7]),
+                            modifier = Modifier.weight(1f).focusRequester(focusRequesters[9]),
                             singleLine = true,
                             isError = windowsCountError != null,
                             supportingText = if (windowsCountError != null) { { Text(windowsCountError!!) } } else null
                         )
+                    }
+                }
+
+                if ((doorsCount.toIntOrNull() ?: 0) > 0) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            EstimateTextField(
+                                value = doorsWidth,
+                                onValueChange = { doorsWidth = it },
+                                label = { Text("Door Width ($unitStr)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f).focusRequester(focusRequesters[7]),
+                                singleLine = true,
+                                isError = doorsWidthError != null,
+                                supportingText = if (doorsWidthError != null) { { Text(doorsWidthError!!) } } else null
+                            )
+                            EstimateTextField(
+                                value = doorsHeight,
+                                onValueChange = { doorsHeight = it },
+                                label = { Text("Door Height ($unitStr)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f).focusRequester(focusRequesters[8]),
+                                singleLine = true,
+                                isError = doorsHeightError != null,
+                                supportingText = if (doorsHeightError != null) { { Text(doorsHeightError!!) } } else null
+                            )
+                        }
+                    }
+                }
+
+                if ((windowsCount.toIntOrNull() ?: 0) > 0) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            EstimateTextField(
+                                value = windowsWidth,
+                                onValueChange = { windowsWidth = it },
+                                label = { Text("Window Width ($unitStr)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f).focusRequester(focusRequesters[10]),
+                                singleLine = true,
+                                isError = windowsWidthError != null,
+                                supportingText = if (windowsWidthError != null) { { Text(windowsWidthError!!) } } else null
+                            )
+                            EstimateTextField(
+                                value = windowsHeight,
+                                onValueChange = { windowsHeight = it },
+                                label = { Text("Window Height ($unitStr)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.weight(1f).focusRequester(focusRequesters[11]),
+                                singleLine = true,
+                                isError = windowsHeightError != null,
+                                supportingText = if (windowsHeightError != null) { { Text(windowsHeightError!!) } } else null
+                            )
+                        }
                     }
                 }
 
@@ -793,7 +707,7 @@ fun AddRoomDialog(
                 }
 
                 item {
-                    Card(
+                    OutlinedCard(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     ) {
@@ -805,43 +719,43 @@ fun AddRoomDialog(
 
                             if (isWashroomEnabled) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomLength,
                                         onValueChange = { washroomLength = it },
                                         label = { Text("L ($unitStr)") },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[8]),
+                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[12]),
                                         singleLine = true,
                                         isError = washroomLengthError != null,
                                         supportingText = if (washroomLengthError != null) { { Text(washroomLengthError!!) } } else null
                                     )
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomWidth,
                                         onValueChange = { washroomWidth = it },
                                         label = { Text("W ($unitStr)") },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[9]),
+                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[13]),
                                         singleLine = true,
                                         isError = washroomWidthError != null,
                                         supportingText = if (washroomWidthError != null) { { Text(washroomWidthError!!) } } else null
                                     )
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomHeight,
                                         onValueChange = { washroomHeight = it },
                                         label = { Text("H ($unitStr)") },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[10]),
+                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[14]),
                                         singleLine = true,
                                         isError = washroomHeightError != null,
                                         supportingText = if (washroomHeightError != null) { { Text(washroomHeightError!!) } } else null
                                     )
                                 }
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = washroomThickness,
                                     onValueChange = { washroomThickness = it },
                                     label = { Text("Washroom Wall Thickness ($thicknessUnitStr)") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequesters[11]),
+                                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequesters[15]),
                                     singleLine = true,
                                     isError = washroomThicknessError != null,
                                     supportingText = if (washroomThicknessError != null) { { Text(washroomThicknessError!!) } } else null
@@ -850,33 +764,90 @@ fun AddRoomDialog(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomDoorsCount,
                                         onValueChange = { washroomDoorsCount = it },
                                         label = { Text("Dr Count") },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[12]),
+                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[16]),
                                         singleLine = true,
                                         isError = washroomDoorsCountError != null,
                                         supportingText = if (washroomDoorsCountError != null) { { Text(washroomDoorsCountError!!) } } else null
                                     )
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomWindowsCount,
                                         onValueChange = { washroomWindowsCount = it },
                                         label = { Text("Wd Count") },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[13]),
+                                        modifier = Modifier.weight(1f).focusRequester(focusRequesters[19]),
                                         singleLine = true,
                                         isError = washroomWindowsCountError != null,
                                         supportingText = if (washroomWindowsCountError != null) { { Text(washroomWindowsCountError!!) } } else null
                                     )
                                 }
+
+                                if ((washroomDoorsCount.toIntOrNull() ?: 0) > 0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        EstimateTextField(
+                                            value = washroomDoorsWidth,
+                                            onValueChange = { washroomDoorsWidth = it },
+                                            label = { Text("Dr Width ($unitStr)") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier.weight(1f).focusRequester(focusRequesters[17]),
+                                            singleLine = true,
+                                            isError = washroomDoorsWidthError != null,
+                                            supportingText = if (washroomDoorsWidthError != null) { { Text(washroomDoorsWidthError!!) } } else null
+                                        )
+                                        EstimateTextField(
+                                            value = washroomDoorsHeight,
+                                            onValueChange = { washroomDoorsHeight = it },
+                                            label = { Text("Dr Height ($unitStr)") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier.weight(1f).focusRequester(focusRequesters[18]),
+                                            singleLine = true,
+                                            isError = washroomDoorsHeightError != null,
+                                            supportingText = if (washroomDoorsHeightError != null) { { Text(washroomDoorsHeightError!!) } } else null
+                                        )
+                                    }
+                                }
+
+                                if ((washroomWindowsCount.toIntOrNull() ?: 0) > 0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        EstimateTextField(
+                                            value = washroomWindowsWidth,
+                                            onValueChange = { washroomWindowsWidth = it },
+                                            label = { Text("Vent/Win Width ($unitStr)") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier.weight(1f).focusRequester(focusRequesters[20]),
+                                            singleLine = true,
+                                            isError = washroomWindowsWidthError != null,
+                                            supportingText = if (washroomWindowsWidthError != null) { { Text(washroomWindowsWidthError!!) } } else null
+                                        )
+                                        EstimateTextField(
+                                            value = washroomWindowsHeight,
+                                            onValueChange = { washroomWindowsHeight = it },
+                                            label = { Text("Vent/Win Height ($unitStr)") },
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier.weight(1f).focusRequester(focusRequesters[21]),
+                                            singleLine = true,
+                                            isError = washroomWindowsHeightError != null,
+                                            supportingText = if (washroomWindowsHeightError != null) { { Text(washroomWindowsHeightError!!) } } else null
+                                        )
+                                    }
+                                }
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Washroom Material", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("Washroom Material", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         RadioButton(selected = washroomMaterialType == "Brick", onClick = { washroomMaterialType = "Brick" })
                                         Text("Brick", modifier = Modifier.clickable { washroomMaterialType = "Brick" }, fontSize = 12.sp)
@@ -912,7 +883,11 @@ fun AddRoomDialog(
                                             thickness = thickness.toDouble(),
                                             materialType = materialType,
                                             doorsCount = doorsCount.toInt(),
+                                            doorsWidth = doorsWidth.toDoubleOrNull() ?: if (isMetric) 0.9 else 3.0,
+                                            doorsHeight = doorsHeight.toDoubleOrNull() ?: if (isMetric) 2.1 else 7.0,
                                             windowsCount = windowsCount.toInt(),
+                                            windowsWidth = windowsWidth.toDoubleOrNull() ?: if (isMetric) 1.2 else 4.0,
+                                            windowsHeight = windowsHeight.toDoubleOrNull() ?: if (isMetric) 1.2 else 4.0,
                                             hasRoof = hasRoof,
                                             isWashroomEnabled = isWashroomEnabled,
                                             washroomLength = washroomLength.toDoubleOrNull() ?: 0.0,
@@ -920,7 +895,11 @@ fun AddRoomDialog(
                                             washroomHeight = washroomHeight.toDoubleOrNull() ?: 0.0,
                                             washroomThickness = washroomThickness.toDoubleOrNull() ?: 0.0,
                                             washroomDoorsCount = washroomDoorsCount.toIntOrNull() ?: 0,
+                                            washroomDoorsWidth = washroomDoorsWidth.toDoubleOrNull() ?: if (isMetric) 0.75 else 2.5,
+                                            washroomDoorsHeight = washroomDoorsHeight.toDoubleOrNull() ?: if (isMetric) 2.0 else 6.5,
                                             washroomWindowsCount = washroomWindowsCount.toIntOrNull() ?: 0,
+                                            washroomWindowsWidth = washroomWindowsWidth.toDoubleOrNull() ?: if (isMetric) 0.6 else 2.0,
+                                            washroomWindowsHeight = washroomWindowsHeight.toDoubleOrNull() ?: if (isMetric) 0.6 else 2.0,
                                             washroomMaterialType = washroomMaterialType,
                                             quantity = quantity.toInt()
                                         )
@@ -938,10 +917,7 @@ fun AddRoomDialog(
 }
 
 @Composable
-fun BoundaryWallStep(
-    viewModel: ProjectViewModel,
-    getFocusRequester: (String) -> FocusRequester
-) {
+fun BoundaryWallStep(viewModel: ProjectViewModel, getFocusRequester: (String) -> FocusRequester) {
     val enabled by viewModel.isBoundaryWallEnabled.collectAsState()
     val length by viewModel.boundaryWallLength.collectAsState()
     val height by viewModel.boundaryWallHeight.collectAsState()
@@ -950,103 +926,77 @@ fun BoundaryWallStep(
     val gHeight by viewModel.gateHeight.collectAsState()
     val matType by viewModel.boundaryMaterialType.collectAsState()
     val ut by viewModel.unitType.collectAsState()
-
     val lengthError by viewModel.boundaryWallLengthError.collectAsState()
     val heightError by viewModel.boundaryWallHeightError.collectAsState()
     val thicknessError by viewModel.boundaryWallThicknessError.collectAsState()
     val gateWidthError by viewModel.gateWidthError.collectAsState()
     val gateHeightError by viewModel.gateHeightError.collectAsState()
-
     val unitStr = if (ut == UnitType.METRIC) "m" else "ft"
     val thicknessUnitStr = if (ut == UnitType.METRIC) "cm" else "in"
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = enabled, onCheckedChange = { viewModel.isBoundaryWallEnabled.value = it })
-                Text(text = "Step 4: Boundary Wall (Optional)", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable { viewModel.isBoundaryWallEnabled.value = !enabled })
-            }
-            Text(text = "Enable to calculate bricks/blocks and concrete pillars for the house boundary.", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Boundary walls", style = MaterialTheme.typography.headlineSmall)
+            Text("Include the outer compound or boundary wall if it is part of this project.",
+                Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-
-        if (enabled) {
-            item {
-                OutlinedTextField(
-                    value = length,
-                    onValueChange = { viewModel.boundaryWallLength.value = it },
-                    label = { Text("Boundary Wall Length ($unitStr)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("boundaryWallLength")),
-                    singleLine = true,
-                    isError = lengthError != null,
-                    supportingText = if (lengthError != null) { { Text(lengthError!!) } } else null
-                )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = height,
-                    onValueChange = { viewModel.boundaryWallHeight.value = it },
-                    label = { Text("Wall Height ($unitStr)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("boundaryWallHeight")),
-                    singleLine = true,
-                    isError = heightError != null,
-                    supportingText = if (heightError != null) { { Text(heightError!!) } } else null
-                )
-            }
-
-            item {
-                OutlinedTextField(
-                    value = thickness,
-                    onValueChange = { viewModel.boundaryWallThickness.value = it },
-                    label = { Text("Wall Thickness ($thicknessUnitStr)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("boundaryWallThickness")),
-                    singleLine = true,
-                    isError = thicknessError != null,
-                    supportingText = if (thicknessError != null) { { Text(thicknessError!!) } } else null
-                )
-            }
-
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = gWidth,
-                        onValueChange = { viewModel.gateWidth.value = it },
-                        label = { Text("Gate Width ($unitStr)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f).focusRequester(getFocusRequester("gateWidth")),
-                        singleLine = true,
-                        isError = gateWidthError != null,
-                        supportingText = if (gateWidthError != null) { { Text(gateWidthError!!) } } else null
-                    )
-                    OutlinedTextField(
-                        value = gHeight,
-                        onValueChange = { viewModel.gateHeight.value = it },
-                        label = { Text("Gate Height ($unitStr)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f).focusRequester(getFocusRequester("gateHeight")),
-                        singleLine = true,
-                        isError = gateHeightError != null,
-                        supportingText = if (gateHeightError != null) { { Text(gateHeightError!!) } } else null
-                    )
+        item {
+            EstimatePanel {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    IconTile(EstimatorSymbol.HOUSE)
+                    Column(Modifier.weight(1f)) {
+                        Text("Include boundary wall", style = MaterialTheme.typography.titleSmall)
+                        Text("Materials and concrete pillars", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(enabled, onCheckedChange = { viewModel.isBoundaryWallEnabled.value = it },
+                        modifier = Modifier.semantics { contentDescription = "Include boundary wall" })
                 }
             }
-
+        }
+        if (enabled) {
             item {
-                Text("Boundary Wall Material Type", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = matType == "Brick", onClick = { viewModel.boundaryMaterialType.value = "Brick" })
-                        Text("Brick", modifier = Modifier.clickable { viewModel.boundaryMaterialType.value = "Brick" })
+                EstimatePanel {
+                    Text("DIMENSIONS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    EstimateTextField(length, { viewModel.boundaryWallLength.value = it }, label = { Text("Perimeter length ($unitStr)") },
+                        modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("boundaryWallLength")),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
+                        isError = lengthError != null, supportingText = lengthError?.let { { Text(it) } })
+                    EstimateTextField(height, { viewModel.boundaryWallHeight.value = it }, label = { Text("Wall height ($unitStr)") },
+                        modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("boundaryWallHeight")),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
+                        isError = heightError != null, supportingText = heightError?.let { { Text(it) } })
+                    EstimateTextField(thickness, { viewModel.boundaryWallThickness.value = it }, label = { Text("Wall thickness ($thicknessUnitStr)") },
+                        modifier = Modifier.fillMaxWidth().focusRequester(getFocusRequester("boundaryWallThickness")),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
+                        isError = thicknessError != null, supportingText = thicknessError?.let { { Text(it) } })
+                }
+            }
+            item {
+                EstimatePanel {
+                    Text("MATERIAL", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        listOf("Brick", "Block").forEach { material ->
+                            Surface(modifier = Modifier.weight(1f).selectable(matType == material, role = Role.RadioButton) { viewModel.boundaryMaterialType.value = material },
+                                color = if (matType == material) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp,
+                                    if (matType == material) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)) {
+                                Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    EstimatorIcon(EstimatorSymbol.WALL, tint = if (material == "Brick") Color(0xFFB75F3D) else MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(if (material == "Block") "Concrete block" else material, style = MaterialTheme.typography.labelLarge)
+                                }
+                            }
+                        }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = matType == "Block", onClick = { viewModel.boundaryMaterialType.value = "Block" })
-                        Text("Concrete Block", modifier = Modifier.clickable { viewModel.boundaryMaterialType.value = "Block" })
+                    Text("Gate opening", style = MaterialTheme.typography.titleSmall)
+                    Text("Deduct the gate from the wall area.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        EstimateTextField(gWidth, { viewModel.gateWidth.value = it }, label = { Text("Width ($unitStr)") },
+                            modifier = Modifier.weight(1f).focusRequester(getFocusRequester("gateWidth")),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
+                            isError = gateWidthError != null, supportingText = gateWidthError?.let { { Text(it) } })
+                        EstimateTextField(gHeight, { viewModel.gateHeight.value = it }, label = { Text("Height ($unitStr)") },
+                            modifier = Modifier.weight(1f).focusRequester(getFocusRequester("gateHeight")),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true,
+                            isError = gateHeightError != null, supportingText = gateHeightError?.let { { Text(it) } })
                     }
                 }
             }
@@ -1107,7 +1057,7 @@ fun MaterialPricingStep(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(text = "Step 5: Material Pricing & Dimensions", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+            Text(text = "Set your pricing", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
             Text(text = "Define material unit prices, capacities, and unit dimensions.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -1126,11 +1076,11 @@ fun MaterialPricingStep(
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            OutlinedCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Bricks Configuration", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = prBrick,
                             onValueChange = { viewModel.brickTripPrice.value = it },
                             label = { Text("Price per Brick ($)") },
@@ -1140,7 +1090,7 @@ fun MaterialPricingStep(
                             isError = brickTripPriceError != null,
                             supportingText = if (brickTripPriceError != null) { { Text(brickTripPriceError!!) } } else null
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = qtyBrick,
                             onValueChange = { viewModel.brickTripQty.value = it },
                             label = { Text("Bks per Trip") },
@@ -1151,7 +1101,7 @@ fun MaterialPricingStep(
                     }
                     Text("Brick Dimensions (L x W x H)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = brL,
                             onValueChange = { viewModel.brickLength.value = it },
                             label = { Text("L ($thicknessUnitStr)") },
@@ -1159,7 +1109,7 @@ fun MaterialPricingStep(
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = brW,
                             onValueChange = { viewModel.brickWidth.value = it },
                             label = { Text("W ($thicknessUnitStr)") },
@@ -1167,7 +1117,7 @@ fun MaterialPricingStep(
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = brH,
                             onValueChange = { viewModel.brickHeight.value = it },
                             label = { Text("H ($thicknessUnitStr)") },
@@ -1181,11 +1131,11 @@ fun MaterialPricingStep(
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            OutlinedCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Concrete Blocks Configuration", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = prBlock,
                             onValueChange = { viewModel.blockTripPrice.value = it },
                             label = { Text("Price per Block ($)") },
@@ -1195,7 +1145,7 @@ fun MaterialPricingStep(
                             isError = blockTripPriceError != null,
                             supportingText = if (blockTripPriceError != null) { { Text(blockTripPriceError!!) } } else null
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = qtyBlock,
                             onValueChange = { viewModel.blockTripQty.value = it },
                             label = { Text("Blks per Trip") },
@@ -1206,7 +1156,7 @@ fun MaterialPricingStep(
                     }
                     Text("Block Dimensions (L x W x H)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = blL,
                             onValueChange = { viewModel.blockLength.value = it },
                             label = { Text("L ($thicknessUnitStr)") },
@@ -1214,7 +1164,7 @@ fun MaterialPricingStep(
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = blW,
                             onValueChange = { viewModel.blockWidth.value = it },
                             label = { Text("W ($thicknessUnitStr)") },
@@ -1222,7 +1172,7 @@ fun MaterialPricingStep(
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = blH,
                             onValueChange = { viewModel.blockHeight.value = it },
                             label = { Text("H ($thicknessUnitStr)") },
@@ -1282,10 +1232,10 @@ fun MaterialPricingStep(
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            OutlinedCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Tiling & plumbing Unit Pricing", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    OutlinedTextField(
+                    EstimateTextField(
                         value = prTile,
                         onValueChange = { viewModel.tilePricePerSqFt.value = it },
                         label = { Text("Tile Price per ${if (ut == UnitType.METRIC) "m²" else "sq ft"} ($)") },
@@ -1295,7 +1245,7 @@ fun MaterialPricingStep(
                         isError = tilePricePerSqFtError != null,
                         supportingText = if (tilePricePerSqFtError != null) { { Text(tilePricePerSqFtError!!) } } else null
                     )
-                    OutlinedTextField(
+                    EstimateTextField(
                         value = prPlumb,
                         onValueChange = { viewModel.plumbingFixtureCost.value = it },
                         label = { Text("Plumbing & Bathroom Fixtures Package Cost ($)") },
@@ -1325,11 +1275,11 @@ fun TripPricingCard(
     priceFocusRequester: FocusRequester? = null,
     qtyFocusRequester: FocusRequester? = null
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    OutlinedCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                EstimateTextField(
                     value = price,
                     onValueChange = onPriceChange,
                     label = { Text(priceLabel) },
@@ -1339,7 +1289,7 @@ fun TripPricingCard(
                     isError = priceError != null,
                     supportingText = if (priceError != null) { { Text(priceError) } } else null
                 )
-                OutlinedTextField(
+                EstimateTextField(
                     value = qty,
                     onValueChange = onQtyChange,
                     label = { Text(qtyLabel) },
@@ -1394,11 +1344,11 @@ fun HouseEstimateResultStep(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text(text = "Final Estimate Summary ($projectType)", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
+            Text(text = "Review & save", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
         }
 
         item {
-            Card(
+            OutlinedCard(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                 elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
             ) {
@@ -1430,7 +1380,7 @@ fun HouseEstimateResultStep(
 
         items(roomsList.size) { index ->
             val rm = roomsList[index]
-            Card(
+            OutlinedCard(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -1449,6 +1399,7 @@ fun HouseEstimateResultStep(
                     Divider()
                     Text("Calculated Materials:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     if (rm.bricksCount > 0) Text("- Bricks: ${rm.bricksCount} pcs", fontSize = 11.sp)
+                    if (rm.blocksCount > 0) Text("- Blocks: ${rm.blocksCount} pcs", fontSize = 11.sp)
                     Text("- Cement: ${String.format(Locale.US, "%.1f Bags", rm.cementBags)}", fontSize = 11.sp)
                     Text("- Sand: ${String.format(Locale.US, "%.2f %s", rm.sandVol, volUnitStr)}", fontSize = 11.sp)
                     if (rm.hasRoof) {
@@ -1459,6 +1410,9 @@ fun HouseEstimateResultStep(
                         Text("- Attached Washroom Tile: ${String.format(Locale.US, "%.1f sq ft", rm.washroomTilesSqFt)} ($currency ${String.format(Locale.US, "%,.0f", rm.washroomTilesCost)})", fontSize = 11.sp)
                         if (rm.washroomBricksCount > 0) {
                             Text("- Washroom Bricks: ${rm.washroomBricksCount} pcs", fontSize = 11.sp)
+                        }
+                        if (rm.washroomBlocksCount > 0) {
+                            Text("- Washroom Blocks: ${rm.washroomBlocksCount} pcs", fontSize = 11.sp)
                         }
                         Text("- Washroom Cement/Sand: ${String.format(Locale.US, "%.1f Bags Cement", rm.washroomCementBags)} / ${String.format(Locale.US, "%.1f %s Sand", rm.washroomSandVol, volUnitStr)}", fontSize = 11.sp)
                     }
@@ -1471,7 +1425,7 @@ fun HouseEstimateResultStep(
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            OutlinedCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Material", fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.weight(2f))
@@ -1556,7 +1510,7 @@ fun HouseEstimateResultStep(
         }
 
         item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            OutlinedCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Overall Expense Summary", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Divider()
@@ -1599,7 +1553,7 @@ fun HouseEstimateResultStep(
                                 "Calculated using Building Estimator App."
                         shareText(context, textStr)
                     },
-                    modifier = Modifier.size(50.dp).background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium)
+                    modifier = Modifier.size(50.dp).background(MaterialTheme.colorScheme.surfaceVariant, shape = CircleShape)
                 ) {
                     Icon(imageVector = Icons.Default.Share, contentDescription = "Share Estimate Text")
                 }
@@ -1643,4 +1597,38 @@ private fun shareText(context: android.content.Context, text: String) {
         putExtra(android.content.Intent.EXTRA_TEXT, text)
     }
     context.startActivity(android.content.Intent.createChooser(intent, "Share Cost Estimate"))
+}
+
+@Preview(showBackground = true)
+@Composable
+fun AddRoomDialogPreview() {
+    MaterialTheme {
+        AddRoomDialog(
+            projectType = "House",
+            existingRooms = emptyList(),
+            unitStr = "ft",
+            thicknessUnitStr = "in",
+            onDismiss = {},
+            onAdd = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Project wizard")
+@Composable
+private fun ProjectWizardScreenPreview() {
+    com.example.paintcalculatorestimator.ui.theme.PaintCalculatorEstimatorTheme {
+        Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("New project", style = MaterialTheme.typography.headlineSmall)
+            WizardStepper(1)
+            Text("What are you building?", style = MaterialTheme.typography.headlineMedium)
+            Text("Pick a project type to get started with rooms, materials and labor.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            com.example.paintcalculatorestimator.ui.theme.EstimatePanel {
+                Text("House", style = MaterialTheme.typography.titleMedium)
+                Text("Residential construction estimate", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Button(onClick = {}, modifier = Modifier.fillMaxWidth()) { Text("Continue  ›",
+                fontSize = 20.sp) }
+        }
+    }
 }

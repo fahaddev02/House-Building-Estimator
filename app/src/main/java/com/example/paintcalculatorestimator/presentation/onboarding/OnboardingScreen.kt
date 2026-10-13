@@ -1,8 +1,12 @@
 package com.example.paintcalculatorestimator.presentation.onboarding
 
+import android.view.Gravity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
@@ -14,242 +18,91 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.paintcalculatorestimator.R
 import com.example.paintcalculatorestimator.data.preferences.AppPreferences
 import com.example.paintcalculatorestimator.presentation.navigation.Screen
+import com.example.paintcalculatorestimator.ui.theme.*
 import kotlinx.coroutines.launch
 
+private val slides = listOf(
+    OnboardingSlide(R.string.onboarding_title_1, R.string.onboarding_desc_1, R.drawable.img_first_onboarding),
+    OnboardingSlide(R.string.onboarding_title_2, R.string.onboarding_desc_2, R.drawable.img_second_onboarding),
+    OnboardingSlide(R.string.onboarding_title_3, R.string.onboarding_desc_3, R.drawable.img_3rd_onboarding)
+)
+
 @Composable
-fun OnboardingScreen(
-    navController: androidx.navigation.NavController,
-    appPreferences: AppPreferences
-) {
-    val coroutineScope = rememberCoroutineScope()
+fun OnboardingScreen(navController: NavController, appPreferences: AppPreferences) {
+    val scope = rememberCoroutineScope()
     var currentSlide by rememberSaveable { mutableIntStateOf(0) }
-
-    val slides = listOf(
-        OnboardingSlide(
-            titleRes = R.string.onboarding_title_1,
-            descRes = R.string.onboarding_desc_1,
-            icon = Icons.Default.Create
-        ),
-        OnboardingSlide(
-            titleRes = R.string.onboarding_title_2,
-            descRes = R.string.onboarding_desc_2,
-            icon = Icons.Default.Info
-        ),
-        OnboardingSlide(
-            titleRes = R.string.onboarding_title_3,
-            descRes = R.string.onboarding_desc_3,
-            icon = Icons.Default.Star
-        )
-    )
-
-    fun finishOnboarding() {
-        coroutineScope.launch {
+    fun finish() {
+        scope.launch {
             appPreferences.setOnboardingCompleted(true)
-            navController.navigate(Screen.Home.route) {
-                popUpTo(Screen.Onboarding.route) { inclusive = true }
-            }
+            navController.navigate(Screen.Home.route) { popUpTo(Screen.Onboarding.route) { inclusive = true } }
         }
     }
-
-    OnboardingScreenContent(
-        currentSlide = currentSlide,
-        slides = slides,
-        onNextClick = { currentSlide += 1 },
-        onSkipClick = { finishOnboarding() },
-        onGetStartedClick = { finishOnboarding() }
-    )
+    OnboardingScreenContent(currentSlide, slides, { currentSlide = (currentSlide + 1).coerceAtMost(slides.lastIndex) }, { finish() }, { finish() })
 }
 
 @Composable
 fun OnboardingScreenContent(
-    currentSlide: Int,
-    slides: List<OnboardingSlide>,
-    onNextClick: () -> Unit,
-    onSkipClick: () -> Unit,
-    onGetStartedClick: () -> Unit
+    currentSlide: Int, slides: List<OnboardingSlide>,
+    onNextClick: () -> Unit, onSkipClick: () -> Unit, onGetStartedClick: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-//            Row(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .statusBarsPadding()
-//                    .padding(16.dp),
-//                horizontalArrangement = Arrangement.End
-//            ) {
-//                if (currentSlide < 2) {
-//                    TextButton(onClick = onSkipClick) {
-//                        Text(
-//                            text = stringResource(id = R.string.onboarding_skip),
-//                            color = MaterialTheme.colorScheme.secondary,
-//                            fontWeight = FontWeight.SemiBold
-//                        )
-//                    }
-//                }
-//            }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            
-            // Slide Content
-            AnimatedContent(
-                targetState = currentSlide,
-                label = "slideTransition",
-                modifier = Modifier.weight(1f)
-            ) { slideIdx ->
-                val slide = slides[slideIdx]
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    // Illustration Placeholder
-                    Box(
-                        modifier = Modifier
-                            .size(160.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = slide.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(80.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(48.dp))
-                    
-                    Text(
-                        text = stringResource(id = slide.titleRes),
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        textAlign = TextAlign.Center
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Text(
-                        text = stringResource(id = slide.descRes),
-                        fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.secondary,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 22.sp
-                    )
-                }
-            }
+    val colors = MaterialTheme.colorScheme
+    val backdrop = if (colors.background.luminance() > 0.5f) Lavender else colors.primaryContainer
+    Column(Modifier.fillMaxSize()
+        .background(Brush.verticalGradient(listOf(backdrop, backdrop, colors.primaryContainer)))
+        .safeDrawingPadding().padding(horizontal = 28.dp, vertical = 12.dp)) {
 
-            // Bottom UI
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Indicators
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 24.dp)
-                ) {
-                    for (i in slides.indices) {
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 4.dp)
-                                .size(width = if (i == currentSlide) 20.dp else 8.dp, height = 8.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (i == currentSlide) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)
-                                )
-                        )
-                    }
-                }
-
-                // Action Buttons
-                if (currentSlide < 2) {
-                    Button(
-                        onClick = onNextClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.onboarding_next),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                } else {
-                    Button(
-                        onClick = onGetStartedClick,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.onboarding_get_started),
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+        AnimatedContent(currentSlide, modifier = Modifier.weight(1f), label = "onboarding") { index ->
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(slides[index].imageRes),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().widthIn(max = 340.dp).height(260.dp),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                )
+                Spacer(Modifier.height(28.dp))
+                Text(stringResource(slides[index].titleRes), style = MaterialTheme.typography.headlineLarge,
+                    textAlign = TextAlign.Center, color = colors.onBackground)
+                Spacer(Modifier.height(12.dp))
+                Text(stringResource(slides[index].descRes), style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center, color = colors.onSurfaceVariant)
+                Spacer(Modifier.height(16.dp))
             }
         }
+        Row(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalArrangement = Arrangement.Center) {
+            slides.indices.forEach { index ->
+                Box(Modifier.padding(horizontal = 4.dp).size(if (index == currentSlide) 26.dp else 8.dp, 6.dp)
+                    .clip(CircleShape).background(if (index == currentSlide) colors.primary else colors.primary.copy(alpha = 0.2f)))
+            }
+        }
+        Button(onClick = if (currentSlide == slides.lastIndex) onGetStartedClick else onNextClick,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 54.dp), shape = CircleShape) {
+            Text(stringResource(if (currentSlide == slides.lastIndex) R.string.onboarding_get_started else R.string.onboarding_next) + "  →",
+                fontSize = 20.sp,
+                textAlign = TextAlign.Center)
+        }
+        Spacer(Modifier.height(16.dp))
+        com.example.paintcalculatorestimator.adsManager.NativeAdView()
     }
 }
 
-data class OnboardingSlide(
-    val titleRes: Int,
-    val descRes: Int,
-    val icon: ImageVector
-)
+data class OnboardingSlide(val titleRes: Int, val descRes: Int, val imageRes: Int)
 
 @androidx.compose.ui.tooling.preview.Preview(showBackground = true)
 @Composable
 fun OnboardingScreenPreview() {
-    val slides = listOf(
-        OnboardingSlide(
-            titleRes = R.string.onboarding_title_1,
-            descRes = R.string.onboarding_desc_1,
-            icon = Icons.Default.Create
-        ),
-        OnboardingSlide(
-            titleRes = R.string.onboarding_title_2,
-            descRes = R.string.onboarding_desc_2,
-            icon = Icons.Default.Info
-        ),
-        OnboardingSlide(
-            titleRes = R.string.onboarding_title_3,
-            descRes = R.string.onboarding_desc_3,
-            icon = Icons.Default.Star
-        )
-    )
-    MaterialTheme {
-        OnboardingScreenContent(
-            currentSlide = 0,
-            slides = slides,
-            onNextClick = {},
-            onSkipClick = {},
-            onGetStartedClick = {}
-        )
-    }
+    PaintCalculatorEstimatorTheme { OnboardingScreenContent(0, slides, {}, {}, {}) }
 }
+     

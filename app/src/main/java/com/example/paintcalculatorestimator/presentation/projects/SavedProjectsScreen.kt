@@ -1,5 +1,9 @@
 package com.example.paintcalculatorestimator.presentation.projects
 
+import com.example.paintcalculatorestimator.ui.theme.EstimateTextField
+
+
+
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,6 +31,7 @@ import androidx.navigation.NavController
 import com.example.paintcalculatorestimator.R
 import com.example.paintcalculatorestimator.data.preferences.AppPreferences
 import com.example.paintcalculatorestimator.domain.model.*
+import com.example.paintcalculatorestimator.adsManager.NativeAdView
 import com.example.paintcalculatorestimator.presentation.home.RecentProjectCard
 import com.example.paintcalculatorestimator.presentation.navigation.Screen
 import java.text.SimpleDateFormat
@@ -93,7 +98,8 @@ fun SavedProjectsScreenContent(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
-        }
+        },
+        bottomBar = { NativeAdView() }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -103,7 +109,7 @@ fun SavedProjectsScreenContent(
                 .padding(horizontal = 16.dp)
         ) {
             // Search field
-            OutlinedTextField(
+            EstimateTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 placeholder = { Text(text = stringResource(id = R.string.search_projects)) },
@@ -138,7 +144,7 @@ fun SavedProjectsScreenContent(
                     items(projectsList) { details ->
                         var showMenu by remember { mutableStateOf(false) }
                         
-                        Card(
+                        OutlinedCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onProjectClick(details.project.id) },

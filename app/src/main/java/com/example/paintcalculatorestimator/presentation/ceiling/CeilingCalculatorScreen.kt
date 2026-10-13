@@ -1,5 +1,9 @@
 package com.example.paintcalculatorestimator.presentation.ceiling
 
+import com.example.paintcalculatorestimator.ui.theme.EstimateTextField
+
+
+
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -76,7 +80,8 @@ fun CeilingCalculatorScreen(
                     }
                 }
             )
-        }
+        },
+        bottomBar = { com.example.paintcalculatorestimator.adsManager.NativeAdView() }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -130,7 +135,7 @@ fun CeilingCalculatorScreen(
                     when (ceilingShape) {
                         "Rectangle" -> {
                             item {
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = rectLength,
                                     onValueChange = { viewModel.rectLength.value = it },
                                     label = { Text("Ceiling Length ($unitStr)") },
@@ -142,7 +147,7 @@ fun CeilingCalculatorScreen(
                                 )
                             }
                             item {
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = rectWidth,
                                     onValueChange = { viewModel.rectWidth.value = it },
                                     label = { Text("Ceiling Width ($unitStr)") },
@@ -156,7 +161,7 @@ fun CeilingCalculatorScreen(
                         }
                         "Square" -> {
                             item {
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = squareSide,
                                     onValueChange = { viewModel.squareSide.value = it },
                                     label = { Text("Side Length ($unitStr)") },
@@ -172,7 +177,7 @@ fun CeilingCalculatorScreen(
                             items(customSections.size) { index ->
                                 val sec = customSections[index]
                                 val secErr = customSectionsErrors.getOrNull(index)
-                                Card(
+                                OutlinedCard(
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                                     modifier = Modifier.fillMaxWidth()
@@ -192,7 +197,7 @@ fun CeilingCalculatorScreen(
                                         }
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            OutlinedTextField(
+                                            EstimateTextField(
                                                 value = sec.length,
                                                 onValueChange = { viewModel.updateCustomSection(index, it, sec.width) },
                                                 label = { Text("Length ($unitStr)") },
@@ -202,7 +207,7 @@ fun CeilingCalculatorScreen(
                                                 isError = secErr?.lengthError != null,
                                                 supportingText = if (secErr?.lengthError != null) { { Text(secErr.lengthError) } } else null
                                             )
-                                            OutlinedTextField(
+                                            EstimateTextField(
                                                 value = sec.width,
                                                 onValueChange = { viewModel.updateCustomSection(index, sec.length, it) },
                                                 label = { Text("Width ($unitStr)") },
@@ -264,7 +269,7 @@ fun CeilingCalculatorScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    Card(
+                    OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -344,4 +349,12 @@ private fun shareText(context: Context, text: String) {
         putExtra(android.content.Intent.EXTRA_TEXT, text)
     }
     context.startActivity(android.content.Intent.createChooser(intent, "Share Estimate Summary"))
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, name = "Ceiling calculator")
+@Composable
+private fun CeilingCalculatorScreenPreview() {
+    com.example.paintcalculatorestimator.ui.theme.PaintCalculatorEstimatorTheme {
+        com.example.paintcalculatorestimator.ui.theme.CalculatorScreenPreview("Ceiling Calculator", "Choose a ceiling shape and calculate its area.", listOf("Ceiling length", "Ceiling width"), "Ceiling area results")
+    }
 }

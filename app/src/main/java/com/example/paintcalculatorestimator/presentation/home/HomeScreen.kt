@@ -1,426 +1,292 @@
 package com.example.paintcalculatorestimator.presentation.home
 
+import android.app.Activity
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.paintcalculatorestimator.R
+import com.example.paintcalculatorestimator.adsManager.InterstitialHelper
+import com.example.paintcalculatorestimator.adsManager.NativeAdView
+import com.example.paintcalculatorestimator.adsManager.RemoteConfigManager
 import com.example.paintcalculatorestimator.data.preferences.AppPreferences
 import com.example.paintcalculatorestimator.domain.model.ProjectDetails
 import com.example.paintcalculatorestimator.domain.model.UnitType
 import com.example.paintcalculatorestimator.presentation.navigation.Screen
+import com.example.paintcalculatorestimator.ui.theme.*
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
-import androidx.compose.material3.ExperimentalMaterial3Api
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
-    navController: NavController,
-    appPreferences: AppPreferences,
-    viewModel: HomeViewModel = hiltViewModel()
-) {
+fun HomeScreen(navController: NavController, appPreferences: AppPreferences, viewModel: HomeViewModel = hiltViewModel()) {
     val recentProjects by viewModel.recentProjectsState.collectAsState()
     val currency by appPreferences.currencyFlow.collectAsState(initial = "PKR")
+    val context = LocalContext.current as? Activity
+
+    fun showHomeAdAndNavigate(action: () -> Unit) {
+        val adConfig = RemoteConfigManager.getAdConfig(
+            RemoteConfigManager.INTERSTITIAL_HOME,
+            RemoteConfigManager.TEST_INTERSTITIAL_ID
+        )
+        if (context != null && adConfig.enabled) {
+            InterstitialHelper.loadAndShowInterstitialAd(
+                activity = context,
+                adId = adConfig.adId,
+                event = "home_click",
+                dismiss = action,
+                failedMoveNext = action
+            )
+        } else {
+            action()
+        }
+    }
 
     HomeScreenContent(
         recentProjects = recentProjects,
         currency = currency,
+        // Settings click is EXEMPT from Interstitial Ads as requested
         onSettingsClick = { navController.navigate(Screen.Settings.route) },
-        onNewCalculationClick = { navController.navigate(Screen.Wizard.createRoute(0)) },
-        onViewAllClick = { navController.navigate(Screen.Projects.route) },
-        onProjectClick = { projectId -> navController.navigate(Screen.ProjectDetails.createRoute(projectId)) },
-        onWallCalcClick = { navController.navigate(Screen.WallCalculator.route) },
-        onCeilingCalcClick = { navController.navigate(Screen.CeilingCalculator.route) },
-        onPaintCalcClick = { navController.navigate(Screen.PaintCalculatorScreen.createRoute(0.0)) },
-        onCostCalcClick = { navController.navigate(Screen.CostCalculatorScreen.createRoute(0.0)) }
+        onNewCalculationClick = { showHomeAdAndNavigate { navController.navigate(Screen.Wizard.createRoute(0)) } },
+        onViewAllClick = { showHomeAdAndNavigate { navController.navigate(Screen.Projects.route) } },
+        onProjectClick = { projectId -> showHomeAdAndNavigate { navController.navigate(Screen.ProjectDetails.createRoute(projectId)) } },
+        onWallCalcClick = { showHomeAdAndNavigate { navController.navigate(Screen.WallCalculator.route) } },
+        onCeilingCalcClick = { showHomeAdAndNavigate { navController.navigate(Screen.CeilingCalculator.route) } },
+        onPaintCalcClick = { showHomeAdAndNavigate { navController.navigate(Screen.PaintCalculatorScreen.createRoute(0.0)) } },
+        onCostCalcClick = { showHomeAdAndNavigate { navController.navigate(Screen.CostCalculatorScreen.createRoute(0.0)) } }
     )
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreenContent(
-    recentProjects: List<ProjectDetails>,
-    currency: String,
-    onSettingsClick: () -> Unit,
-    onNewCalculationClick: () -> Unit,
-    onViewAllClick: () -> Unit,
-    onProjectClick: (Long) -> Unit,
-    onWallCalcClick: () -> Unit,
-    onCeilingCalcClick: () -> Unit,
-    onPaintCalcClick: () -> Unit,
-    onCostCalcClick: () -> Unit
+    recentProjects: List<ProjectDetails>, currency: String,
+    onSettingsClick: () -> Unit, onNewCalculationClick: () -> Unit,
+    onViewAllClick: () -> Unit, onProjectClick: (Long) -> Unit,
+    onWallCalcClick: () -> Unit, onCeilingCalcClick: () -> Unit,
+    onPaintCalcClick: () -> Unit, onCostCalcClick: () -> Unit
 ) {
+    var showExitDialog by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    BackHandler { showExitDialog = true }
+
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = stringResource(id = R.string.home_title),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp
-                        )
-                        Text(
-                            text = stringResource(id = R.string.home_subtitle),
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onSettingsClick) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                )
-            )
-        }
-    ) { paddingValues ->
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = { NativeAdView() }
+    ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            
-            // 1. New Calculation Card
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onNewCalculationClick() },
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = stringResource(id = R.string.home_btn_new_calc),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Start a multi-step project estimate",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BrandMark()
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium)
+                        Text("Plan your next building project", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    OutlinedIconButton(onClick = onSettingsClick, shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", modifier = Modifier.size(22.dp))
+                    }
+                }
+            }
+            item {
+                OutlinedCard(onClick = onNewCalculationClick, shape = RoundedCornerShape(24.dp)) {
+                    Box(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(BrandPurpleDeep, BrandPurple)))) {
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(R.drawable.ic_paint_new),
                             contentDescription = null,
-                            modifier = Modifier.size(32.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
+                            modifier = Modifier.align(Alignment.TopEnd).padding(20.dp).size(52.dp)
                         )
-                    }
-                }
-            }
-
-            // 2. Quick Tools Grid Header
-            item {
-                Text(
-                    text = stringResource(id = R.string.home_section_quick_tools),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-
-            // Quick Tools Cards
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QuickToolCard(
-                        title = stringResource(id = R.string.quick_wall_calc),
-                        desc = "Walls size",
-                        icon = Icons.Default.Add,
-                        modifier = Modifier.weight(1f),
-                        onClick = onWallCalcClick
-                    )
-                    QuickToolCard(
-                        title = stringResource(id = R.string.quick_ceiling_calc),
-                        desc = "Ceiling size",
-                        icon = Icons.Default.Add,
-                        modifier = Modifier.weight(1f),
-                        onClick = onCeilingCalcClick
-                    )
-                }
-            }
-
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QuickToolCard(
-                        title = stringResource(id = R.string.quick_paint_calc),
-                        desc = "Coverage/Coats",
-                        icon = Icons.Default.Add,
-                        modifier = Modifier.weight(1f),
-                        onClick = onPaintCalcClick
-                    )
-                    QuickToolCard(
-                        title = stringResource(id = R.string.quick_cost_calc),
-                        desc = "Total estimate",
-                        icon = Icons.Default.Add,
-                        modifier = Modifier.weight(1f),
-                        onClick = onCostCalcClick
-                    )
-                }
-            }
-
-            // 3. Saved Projects Header / View All link
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.home_section_recent_projects),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    TextButton(onClick = onViewAllClick) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.List,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "View All",
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                        Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text("MULTI-STEP ESTIMATE", style = MaterialTheme.typography.labelSmall, color = Color(0xFFE4DCFF))
+                            Text("Start a new project", style = MaterialTheme.typography.headlineSmall, color = Color.White)
+                            Text("Walk through rooms, boundary walls and material pricing in one guided flow.",
+                                style = MaterialTheme.typography.bodyMedium, color = Color(0xFFE4DCFF),
+                                modifier = Modifier.fillMaxWidth(0.88f))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFF2EDFF)) {
+                                    Text("Create  ›", Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                                        style = MaterialTheme.typography.labelLarge, color = BrandPurpleDeep)
+                                }
+                            }
                         }
                     }
                 }
             }
-
-            // 4. Recent Projects List
+            item { Text("Quick tools", style = MaterialTheme.typography.titleSmall) }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    QuickToolCard(
+                        "Wall Calculator",
+                        "Rooms & walls",
+                        EstimatorSymbol.WALL,
+                        Color(0xFFC36651), Modifier.weight(1f),
+                        onWallCalcClick)
+                    QuickToolCard("Ceiling Calculator", "Ceiling area", EstimatorSymbol.ROOF, Color(0xFF3986A5), Modifier.weight(1f), onCeilingCalcClick)
+                }
+            }
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    QuickToolCard("Paint Calculator", "Coverage & coats", EstimatorSymbol.PAINT, Color(0xFFAB8127), Modifier.weight(1f), onPaintCalcClick)
+                    QuickToolCard("Cost Calculator", "Total estimate", EstimatorSymbol.COST, Color(0xFF218871), Modifier.weight(1f), onCostCalcClick)
+                }
+            }
+            item {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Recent projects", style = MaterialTheme.typography.titleSmall)
+                    TextButton(onClick = onViewAllClick) { Text("View all") }
+                }
+            }
             if (recentProjects.isEmpty()) {
                 item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.home_no_projects),
-                            color = MaterialTheme.colorScheme.secondary,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = onNewCalculationClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        ) {
-                            Text(text = stringResource(id = R.string.home_create_first_estimate))
+                    EstimatePanel {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            IconTile(EstimatorSymbol.PLAN)
+                            Column(Modifier.weight(1f)) {
+                                Text("Your next project starts here", style = MaterialTheme.typography.titleSmall)
+                                Text("Saved estimates will appear here.", style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
+                        OutlinedButton(onClick = onNewCalculationClick, modifier = Modifier.fillMaxWidth()) { Text("Create your first estimate") }
                     }
                 }
             } else {
-                items(recentProjects) { projectDetails ->
-                    RecentProjectCard(
-                        projectDetails = projectDetails,
-                        currency = currency,
-                        onOpen = {
-                            onProjectClick(projectDetails.project.id)
-                        }
-                    )
+                items(recentProjects, key = { it.project.id }) { details ->
+                    RecentProjectCard(details, currency) { onProjectClick(details.project.id) }
                 }
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
-}
 
-@androidx.compose.ui.tooling.preview.Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    MaterialTheme {
-        HomeScreenContent(
-            recentProjects = emptyList(),
-            currency = "PKR",
-            onSettingsClick = {},
-            onNewCalculationClick = {},
-            onViewAllClick = {},
-            onProjectClick = {},
-            onWallCalcClick = {},
-            onCeilingCalcClick = {},
-            onPaintCalcClick = {},
-            onCostCalcClick = {}
+    if (showExitDialog) {
+        ExitDialog(
+            onDismiss = { showExitDialog = false },
+            onExit = { (context as? Activity)?.finish() }
         )
     }
 }
 
 @Composable
-fun QuickToolCard(
-    title: String,
-    desc: String,
-    icon: ImageVector,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = modifier
-            .height(100.dp)
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
+private fun ExitDialog(onDismiss: () -> Unit, onExit: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(28.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        icon = {
+            Box(
+                modifier = Modifier.size(72.dp).clip(RoundedCornerShape(22.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                androidx.compose.foundation.Image(
+                    painter = painterResource(R.drawable.ic_exit_dialog),
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp)
+                )
+            }
+        },
+        title = { Text("Exit app?", style = MaterialTheme.typography.headlineSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center) },
+        text = {
+            Text(
+                "Are you sure you want to leave Construction Cost Estimator?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
+        },
+        confirmButton = {
+            Button(onClick = onExit, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("Exit")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun QuickToolCard(title: String, desc: String, symbol: EstimatorSymbol, tint: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    OutlinedCard(onClick = onClick, modifier = modifier.heightIn(min = 140.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            IconTile(symbol, tint)
             Column {
-                Text(
-                    text = title,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = desc,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
 
 @Composable
-fun RecentProjectCard(
-    projectDetails: ProjectDetails,
-    currency: String,
-    onOpen: () -> Unit
-) {
+fun RecentProjectCard(projectDetails: ProjectDetails, currency: String, onOpen: () -> Unit) {
     val firstRoom = projectDetails.rooms.firstOrNull()?.room
-    val unitStr = if (firstRoom?.unitType == UnitType.METRIC) "L" else "gal"
-    val areaUnitStr = if (firstRoom?.unitType == UnitType.METRIC) "m²" else "ft²"
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onOpen() }
-            .padding(vertical = 4.dp),
+    val metric = firstRoom?.unitType != UnitType.IMPERIAL
+    val construction = projectDetails.project.notes.startsWith("[Type:")
+    OutlinedCard(onClick = onOpen, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = projectDetails.project.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "$currency ${String.format(Locale.US, "%,.0f", projectDetails.estimate.totalCost)}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(projectDetails.project.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text("$currency ${String.format(Locale.US, "%,.0f", projectDetails.estimate.totalCost)}",
+                    style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.tertiary)
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            if (projectDetails.project.location.isNotEmpty()) {
-                Text(
-                    text = projectDetails.project.location,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                Column {
-                    Text(text = "Area", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        text = "${projectDetails.estimate.paintableArea} $areaUnitStr",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+            Text(SimpleDateFormat("dd MMM yyyy, h:mm a", Locale.getDefault()).format(Date(projectDetails.project.createdAt)),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text(if (construction) "Floor area" else "Area", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${String.format(Locale.US, "%.1f", projectDetails.estimate.paintableArea)} ${if (construction || !metric) "ft²" else "m²"}",
+                        style = MaterialTheme.typography.titleSmall)
                 }
-                Column {
-                    Text(text = "Paint Required", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        text = "${projectDetails.estimate.paintRequired} $unitStr",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                Column(Modifier.weight(1f)) {
+                    Text(if (construction) "Materials" else "Paint required", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (construction) "$currency ${String.format(Locale.US, "%,.0f", projectDetails.estimate.materialsCost)}"
+                        else "${String.format(Locale.US, "%.1f", projectDetails.estimate.paintRequired)} ${if (metric) "L" else "gal"}",
+                        style = MaterialTheme.typography.titleSmall)
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, name = "Home screen")
+@Composable
+fun HomeScreenPreview() {
+    PaintCalculatorEstimatorTheme {
+        HomeScreenContent(emptyList(), "PKR", {}, {}, {}, {}, {}, {}, {}, {})
     }
 }

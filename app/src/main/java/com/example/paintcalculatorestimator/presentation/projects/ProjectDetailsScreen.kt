@@ -23,6 +23,7 @@ import com.example.paintcalculatorestimator.domain.model.*
 import com.example.paintcalculatorestimator.pdf.PdfGenerator
 import com.example.paintcalculatorestimator.presentation.navigation.Screen
 import com.example.paintcalculatorestimator.presentation.project.RowSummary
+import com.example.paintcalculatorestimator.adsManager.NativeAdView
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -112,7 +113,8 @@ fun ProjectDetailsScreenContent(
                         titleContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
-            }
+            },
+            bottomBar = { NativeAdView() }
         ) { paddingValues ->
             LazyColumn(
                 modifier = Modifier
@@ -124,7 +126,7 @@ fun ProjectDetailsScreenContent(
             ) {
                 // Main Total Card
                 item {
-                    Card(
+                    OutlinedCard(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
                         shape = MaterialTheme.shapes.large,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
@@ -154,7 +156,7 @@ fun ProjectDetailsScreenContent(
 
                 // Project Details Meta Card
                 item {
-                    Card(
+                    OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
@@ -178,7 +180,7 @@ fun ProjectDetailsScreenContent(
                 // Measurements Card
                 if (room != null) {
                     item {
-                        Card(
+                        OutlinedCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
@@ -198,7 +200,7 @@ fun ProjectDetailsScreenContent(
                 // Deductions Card
                 if (roomDetails != null && roomDetails.openings.isNotEmpty()) {
                     item {
-                        Card(
+                        OutlinedCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
@@ -232,7 +234,7 @@ fun ProjectDetailsScreenContent(
 
                 // Paint specifications Card
                 item {
-                    Card(
+                    OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
@@ -253,7 +255,7 @@ fun ProjectDetailsScreenContent(
 
                 // Cost Breakdown Card
                 item {
-                    Card(
+                    OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
@@ -357,7 +359,7 @@ private fun sharePdfFile(context: android.content.Context, file: java.io.File) {
     try {
         val uri = androidx.core.content.FileProvider.getUriForFile(
             context,
-            "com.example.paintcalculatorestimator.fileprovider",
+            "${context.packageName}.fileprovider",
             file
         )
         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {

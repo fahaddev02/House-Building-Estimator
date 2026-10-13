@@ -1,5 +1,10 @@
 package com.example.paintcalculatorestimator.presentation.wall
 
+import com.example.paintcalculatorestimator.ui.theme.EstimateTextField
+import com.example.paintcalculatorestimator.ui.theme.CalculatorScreenPreview
+
+
+
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.*
@@ -189,7 +194,8 @@ fun WallCalculatorScreen(
                     }
                 }
             )
-        }
+        },
+        bottomBar = { com.example.paintcalculatorestimator.adsManager.NativeAdView() }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -209,7 +215,7 @@ fun WallCalculatorScreen(
 
                     // --- SECTION 1: ROOM WALLS & DIMENSIONS ---
                     item {
-                        Card(
+                        OutlinedCard(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -254,7 +260,7 @@ fun WallCalculatorScreen(
 
                                     when (roomType) {
                                         "Single Wall" -> {
-                                            OutlinedTextField(
+                                            EstimateTextField(
                                                 value = singleWidth,
                                                 onValueChange = { viewModel.singleWidth.value = it },
                                                 label = { Text("Wall Width ($unitStr)") },
@@ -265,7 +271,7 @@ fun WallCalculatorScreen(
                                                 supportingText = if (singleWidthError != null) { { Text(singleWidthError!!) } } else null
                                             )
                                             Spacer(modifier = Modifier.height(8.dp))
-                                            OutlinedTextField(
+                                            EstimateTextField(
                                                 value = singleHeight,
                                                 onValueChange = { viewModel.singleHeight.value = it },
                                                 label = { Text("Wall Height ($unitStr)") },
@@ -284,7 +290,7 @@ fun WallCalculatorScreen(
                                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    OutlinedTextField(
+                                                    EstimateTextField(
                                                         value = wall.width,
                                                         onValueChange = { viewModel.updateMultipleWall(index, it, wall.height) },
                                                         label = { Text("${wall.name} W ($unitStr)") },
@@ -294,7 +300,7 @@ fun WallCalculatorScreen(
                                                         isError = wallErr?.widthError != null,
                                                         supportingText = if (wallErr?.widthError != null) { { Text(wallErr.widthError) } } else null
                                                     )
-                                                    OutlinedTextField(
+                                                    EstimateTextField(
                                                         value = wall.height,
                                                         onValueChange = { viewModel.updateMultipleWall(index, wall.width, it) },
                                                         label = { Text("${wall.name} H ($unitStr)") },
@@ -316,7 +322,7 @@ fun WallCalculatorScreen(
                                             }
                                         }
                                         "Complete Room" -> {
-                                            OutlinedTextField(
+                                            EstimateTextField(
                                                 value = roomLength,
                                                 onValueChange = { viewModel.roomLength.value = it },
                                                 label = { Text("Room Length ($unitStr)") },
@@ -327,7 +333,7 @@ fun WallCalculatorScreen(
                                                 supportingText = if (roomLengthError != null) { { Text(roomLengthError!!) } } else null
                                             )
                                             Spacer(modifier = Modifier.height(8.dp))
-                                            OutlinedTextField(
+                                            EstimateTextField(
                                                 value = roomWidth,
                                                 onValueChange = { viewModel.roomWidth.value = it },
                                                 label = { Text("Room Width ($unitStr)") },
@@ -338,7 +344,7 @@ fun WallCalculatorScreen(
                                                 supportingText = if (roomWidthError != null) { { Text(roomWidthError!!) } } else null
                                             )
                                             Spacer(modifier = Modifier.height(8.dp))
-                                            OutlinedTextField(
+                                            EstimateTextField(
                                                 value = roomHeight,
                                                 onValueChange = { viewModel.roomHeight.value = it },
                                                 label = { Text("Wall Height ($unitStr)") },
@@ -352,7 +358,7 @@ fun WallCalculatorScreen(
                                     }
 
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = wallThickness,
                                         onValueChange = { viewModel.wallThickness.value = it },
                                         label = { Text("Wall Thickness ($thicknessUnitStr)") },
@@ -413,7 +419,7 @@ fun WallCalculatorScreen(
 
                     // --- SECTION 2: CONSTRUCTION MATERIAL PRICES ---
                     item {
-                        Card(
+                        OutlinedCard(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -429,7 +435,7 @@ fun WallCalculatorScreen(
 
                                 if (pricingSectionExpanded) {
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = pricePerBrick,
                                         onValueChange = { viewModel.pricePerBrick.value = it },
                                         label = { Text("Price per ${if (materialType == "Brick") "Brick" else "Block"} ($currency)") },
@@ -440,7 +446,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (pricePerBrickError != null) { { Text(pricePerBrickError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = pricePerCement,
                                         onValueChange = { viewModel.pricePerCement.value = it },
                                         label = { Text("Price per Cement Bag ($currency)") },
@@ -451,7 +457,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (pricePerCementError != null) { { Text(pricePerCementError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = pricePerSand,
                                         onValueChange = { viewModel.pricePerSand.value = it },
                                         label = { Text("Price per Sand unit ($currency / $volUnitStr)") },
@@ -462,7 +468,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (pricePerSandError != null) { { Text(pricePerSandError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = laborWallCost,
                                         onValueChange = { viewModel.laborWallCost.value = it },
                                         label = { Text("Walls Labor Cost ($currency)") },
@@ -479,7 +485,7 @@ fun WallCalculatorScreen(
 
                     // --- SECTION 3: CONCRETE ROOF / SLAB (CHHAT) ---
                     item {
-                        Card(
+                        OutlinedCard(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -500,7 +506,7 @@ fun WallCalculatorScreen(
 
                                 if (isSlabEnabled && slabSectionExpanded) {
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = slabLength,
                                         onValueChange = { viewModel.slabLength.value = it },
                                         label = { Text("Slab Length ($unitStr)") },
@@ -511,7 +517,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (slabLengthError != null) { { Text(slabLengthError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = slabWidth,
                                         onValueChange = { viewModel.slabWidth.value = it },
                                         label = { Text("Slab Width ($unitStr)") },
@@ -522,7 +528,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (slabWidthError != null) { { Text(slabWidthError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = slabThickness,
                                         onValueChange = { viewModel.slabThickness.value = it },
                                         label = { Text("Slab Thickness ($thicknessUnitStr)") },
@@ -533,7 +539,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (slabThicknessError != null) { { Text(slabThicknessError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = pricePerSteel,
                                         onValueChange = { viewModel.pricePerSteel.value = it },
                                         label = { Text("Price per Steel/Rebar kg ($currency)") },
@@ -544,7 +550,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (pricePerSteelError != null) { { Text(pricePerSteelError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = pricePerAggregate,
                                         onValueChange = { viewModel.pricePerAggregate.value = it },
                                         label = { Text("Price per Aggregate/Crush unit ($currency / $volUnitStr)") },
@@ -555,7 +561,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (pricePerAggregateError != null) { { Text(pricePerAggregateError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = laborSlabCost,
                                         onValueChange = { viewModel.laborSlabCost.value = it },
                                         label = { Text("Slab Labor Cost ($currency)") },
@@ -572,7 +578,7 @@ fun WallCalculatorScreen(
 
                     // --- SECTION 4: WASHROOM INSIDE ROOM (OPTIONAL) ---
                     item {
-                        Card(
+                        OutlinedCard(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -593,7 +599,7 @@ fun WallCalculatorScreen(
 
                                 if (isWashroomEnabled && washroomSectionExpanded) {
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomLength,
                                         onValueChange = { viewModel.washroomLength.value = it },
                                         label = { Text("Washroom Length ($unitStr)") },
@@ -604,7 +610,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (washroomLengthError != null) { { Text(washroomLengthError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomWidth,
                                         onValueChange = { viewModel.washroomWidth.value = it },
                                         label = { Text("Washroom Width ($unitStr)") },
@@ -615,7 +621,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (washroomWidthError != null) { { Text(washroomWidthError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomHeight,
                                         onValueChange = { viewModel.washroomHeight.value = it },
                                         label = { Text("Washroom Height ($unitStr)") },
@@ -626,7 +632,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (washroomHeightError != null) { { Text(washroomHeightError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = washroomThickness,
                                         onValueChange = { viewModel.washroomThickness.value = it },
                                         label = { Text("Washroom Wall Thickness ($thicknessUnitStr)") },
@@ -651,7 +657,7 @@ fun WallCalculatorScreen(
                                     }
 
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = pricePerTile,
                                         onValueChange = { viewModel.pricePerTile.value = it },
                                         label = { Text("Price per Tile Area unit ($currency / $areaUnitStr)") },
@@ -662,7 +668,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (pricePerTileError != null) { { Text(pricePerTileError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = plumbingCost,
                                         onValueChange = { viewModel.plumbingCost.value = it },
                                         label = { Text("Plumbing/Fixtures Total Cost ($currency)") },
@@ -673,7 +679,7 @@ fun WallCalculatorScreen(
                                         supportingText = if (plumbingCostError != null) { { Text(plumbingCostError!!) } } else null
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedTextField(
+                                    EstimateTextField(
                                         value = laborWashroomCost,
                                         onValueChange = { viewModel.laborWashroomCost.value = it },
                                         label = { Text("Washroom Labor Cost ($currency)") },
@@ -751,7 +757,7 @@ fun WallCalculatorScreen(
 
                     // 1. Room Walls Card
                     item {
-                        Card(
+                        OutlinedCard(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -773,7 +779,7 @@ fun WallCalculatorScreen(
                     // 2. Concrete Slab Card
                     if (isSlabEnabled) {
                         item {
-                            Card(
+                            OutlinedCard(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -797,7 +803,7 @@ fun WallCalculatorScreen(
                     // 3. Washroom Card
                     if (isWashroomEnabled) {
                         item {
-                            Card(
+                            OutlinedCard(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -811,6 +817,8 @@ fun WallCalculatorScreen(
                                     ResultRow(label = "Tile Area Required", value = String.format(Locale.US, "%.2f %s", washroomTilesResult, areaUnitStr))
                                     ResultRow(label = "Tiles Cost", value = "$currency ${String.format(Locale.US, "%,.2f", washroomTilesCost)}")
                                     ResultRow(label = "Plumbing Package Cost", value = "$currency ${String.format(Locale.US, "%,.2f", washroomPlumbingCost)}")
+
+
                                     ResultRow(label = "Labor Cost", value = "$currency ${String.format(Locale.US, "%,.2f", washroomLaborCost)}")
                                     Divider()
                                     ResultRow(label = "Washroom Total", value = "$currency ${String.format(Locale.US, "%,.2f", washroomTotalCost)}", isBold = true)
@@ -821,7 +829,7 @@ fun WallCalculatorScreen(
 
                     // 4. Grand Total prominent card
                     item {
-                        Card(
+                        OutlinedCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                             elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
@@ -997,7 +1005,7 @@ fun AddOpeningDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
+        OutlinedCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -1029,7 +1037,7 @@ fun AddOpeningDialog(
                     )
                 }
 
-                OutlinedTextField(
+                EstimateTextField(
                     value = width,
                     onValueChange = { width = it },
                     label = { Text("Width ($unitStr)") },
@@ -1040,7 +1048,7 @@ fun AddOpeningDialog(
                     supportingText = if (widthError != null) { { Text(widthError!!) } } else null
                 )
 
-                OutlinedTextField(
+                EstimateTextField(
                     value = height,
                     onValueChange = { height = it },
                     label = { Text("Height ($unitStr)") },
@@ -1051,7 +1059,7 @@ fun AddOpeningDialog(
                     supportingText = if (heightError != null) { { Text(heightError!!) } } else null
                 )
 
-                OutlinedTextField(
+                EstimateTextField(
                     value = quantity,
                     onValueChange = { quantity = it },
                     label = { Text("Quantity") },
@@ -1108,4 +1116,12 @@ private fun shareText(context: Context, text: String) {
         putExtra(android.content.Intent.EXTRA_TEXT, text)
     }
     context.startActivity(android.content.Intent.createChooser(intent, "Share Cost Estimate"))
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, name = "Wall calculator")
+@Composable
+private fun WallCalculatorScreenPreview() {
+    com.example.paintcalculatorestimator.ui.theme.PaintCalculatorEstimatorTheme {
+        CalculatorScreenPreview("Wall Calculator", "Calculate wall area, openings and material quantities.", listOf("Wall width", "Wall height", "Material price"), "Construction estimate summary")
+    }
 }

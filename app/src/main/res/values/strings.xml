@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Paint Calculator</string>
+    <string name="app_name">Construction Cost Estimator</string>
     <string name="app_full_name">Paint Calculator &amp; Estimator</string>
 
     <!-- Onboarding -->
@@ -7,18 +7,18 @@
     <string name="onboarding_next">Next</string>
     <string name="onboarding_get_started">Get Started</string>
 
-    <string name="onboarding_title_1">Calculate Paint Easily</string>
-    <string name="onboarding_desc_1">Calculate exactly how much paint you need for your project.</string>
+    <string name="onboarding_title_1">Measure once, build with confidence</string>
+    <string name="onboarding_desc_1">Plan rooms, walls and roof slabs with clear measurements for every part of your project.</string>
 
-    <string name="onboarding_title_2">Get Accurate Estimates</string>
-    <string name="onboarding_desc_2">Calculate paint quantity, material costs and labor expenses.</string>
+    <string name="onboarding_title_2">Know the cost before you build</string>
+    <string name="onboarding_desc_2">Estimate bricks, cement, steel, paint and labor with your own material prices.</string>
 
-    <string name="onboarding_title_3">Save Your Projects</string>
-    <string name="onboarding_desc_3">Save and manage multiple painting projects in one place.</string>
+    <string name="onboarding_title_3">Your projects, always organized</string>
+    <string name="onboarding_desc_3">Save estimates, revisit your projects and share a clear PDF breakdown.</string>
 
     <!-- Home -->
-    <string name="home_title">Paint Calculator</string>
-    <string name="home_subtitle">Plan your painting project</string>
+    <string name="home_title">Construction Cost Estimator</string>
+    <string name="home_subtitle">Plan your next building project</string>
     <string name="home_btn_new_calc">New Calculation</string>
     <string name="home_section_my_projects">My Projects</string>
     <string name="home_section_quick_tools">Quick Tools</string>
@@ -157,4 +157,5 @@
     <string name="err_invalid_opening_width">Please enter opening width</string>
     <string name="err_invalid_opening_height">Please enter opening height</string>
     <string name="err_invalid_material_name">Please enter material name</string>
+    <string name="please_wait_ad_is_loading">Loading Ad...</string>
 </resources>

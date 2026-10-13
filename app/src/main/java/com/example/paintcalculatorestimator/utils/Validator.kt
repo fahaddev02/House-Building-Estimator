@@ -1,5 +1,9 @@
 package com.example.paintcalculatorestimator.utils
 
+import android.app.Activity
+import android.content.Context
+import android.util.Log
+import androidx.fragment.app.Fragment
 import java.util.Locale
 
 sealed class ValidationResult {
@@ -7,6 +11,18 @@ sealed class ValidationResult {
     data class Invalid(val message: String) : ValidationResult()
 
     val isValid: Boolean get() = this is Valid
+}
+
+fun Context.logE(message: String){
+    Log.e(this.javaClass.simpleName, "${this.javaClass.simpleName} $message", )
+}
+
+fun Activity.logE(message: String){
+    Log.e(this.javaClass.simpleName, "${this.javaClass.simpleName} $message", )
+}
+
+fun Fragment.logE(message: String){
+    Log.e(this.javaClass.simpleName, "${this.javaClass.simpleName} $message", )
 }
 
 object Validator {

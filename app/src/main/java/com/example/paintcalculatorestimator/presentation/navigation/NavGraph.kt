@@ -7,17 +7,17 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.paintcalculatorestimator.data.preferences.AppPreferences
+import com.example.paintcalculatorestimator.presentation.ceiling.CeilingCalculatorScreen
+import com.example.paintcalculatorestimator.presentation.cost.CostCalculatorScreen
 import com.example.paintcalculatorestimator.presentation.home.HomeScreen
 import com.example.paintcalculatorestimator.presentation.onboarding.OnboardingScreen
+import com.example.paintcalculatorestimator.presentation.paint.PaintCalculatorScreen
 import com.example.paintcalculatorestimator.presentation.project.ProjectWizardScreen
 import com.example.paintcalculatorestimator.presentation.projects.ProjectDetailsScreen
 import com.example.paintcalculatorestimator.presentation.projects.SavedProjectsScreen
 import com.example.paintcalculatorestimator.presentation.settings.SettingsScreen
 import com.example.paintcalculatorestimator.presentation.splash.SplashScreen
 import com.example.paintcalculatorestimator.presentation.wall.WallCalculatorScreen
-import com.example.paintcalculatorestimator.presentation.ceiling.CeilingCalculatorScreen
-import com.example.paintcalculatorestimator.presentation.paint.PaintCalculatorScreen
-import com.example.paintcalculatorestimator.presentation.cost.CostCalculatorScreen
 
 @Composable
 fun NavGraph(
@@ -29,7 +29,10 @@ fun NavGraph(
         startDestination = Screen.Splash.route
     ) {
         composable(route = Screen.Splash.route) {
-            SplashScreen(navController = navController, appPreferences = appPreferences)
+            SplashScreen(
+                navController = navController,
+                appPreferences = appPreferences
+            )
         }
 
         composable(route = Screen.Onboarding.route) {
@@ -37,15 +40,24 @@ fun NavGraph(
         }
 
         composable(route = Screen.Home.route) {
-            HomeScreen(navController = navController, appPreferences = appPreferences)
+            HomeScreen(
+                navController = navController,
+                appPreferences = appPreferences
+            )
         }
 
         composable(route = Screen.Settings.route) {
-            SettingsScreen(navController = navController, appPreferences = appPreferences)
+            SettingsScreen(
+                navController = navController,
+                appPreferences = appPreferences
+            )
         }
 
         composable(route = Screen.Projects.route) {
-            SavedProjectsScreen(navController = navController, appPreferences = appPreferences)
+            SavedProjectsScreen(
+                navController = navController,
+                appPreferences = appPreferences
+            )
         }
 
         composable(
@@ -80,11 +92,15 @@ fun NavGraph(
         }
 
         composable(route = Screen.WallCalculator.route) {
-            WallCalculatorScreen(navController = navController)
+            WallCalculatorScreen(
+                navController = navController
+            )
         }
 
         composable(route = Screen.CeilingCalculator.route) {
-            CeilingCalculatorScreen(navController = navController)
+            CeilingCalculatorScreen(
+                navController = navController
+            )
         }
 
         composable(
@@ -96,7 +112,9 @@ fun NavGraph(
                 }
             )
         ) {
-            PaintCalculatorScreen(navController = navController)
+            PaintCalculatorScreen(
+                navController = navController
+            )
         }
 
         composable(
@@ -108,7 +126,9 @@ fun NavGraph(
                 }
             )
         ) {
-            CostCalculatorScreen(navController = navController)
+            CostCalculatorScreen(
+                navController = navController
+            )
         }
     }
 }

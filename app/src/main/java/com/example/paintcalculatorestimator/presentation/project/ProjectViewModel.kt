@@ -25,6 +25,7 @@ data class IndividualRoomEstimate(
     val floorAreaSqFt: Double,
     val wallVolumeM3: Double,
     val bricksCount: Int,
+    val blocksCount: Int = 0,
     val cementBags: Double,
     val sandVol: Double,
     val hasRoof: Boolean,
@@ -35,6 +36,7 @@ data class IndividualRoomEstimate(
     val hasWashroom: Boolean,
     val washroomFloorAreaSqFt: Double,
     val washroomBricksCount: Int,
+    val washroomBlocksCount: Int = 0,
     val washroomCementBags: Double,
     val washroomSandVol: Double,
     val washroomTilesSqFt: Double,
@@ -293,8 +295,8 @@ class ProjectViewModel @Inject constructor(
                 }
             }
             5 -> {
-                val hasBricks = houseRooms.value.any { it.materialType == "Brick" } || (isBoundaryWallEnabled.value && boundaryMaterialType.value == "Brick")
-                val hasBlocks = houseRooms.value.any { it.materialType == "Block" } || (isBoundaryWallEnabled.value && boundaryMaterialType.value == "Block")
+                val hasBricks = houseRooms.value.any { it.materialType == "Brick" || (it.isWashroomEnabled && it.washroomMaterialType == "Brick") } || (isBoundaryWallEnabled.value && boundaryMaterialType.value == "Brick")
+                val hasBlocks = houseRooms.value.any { it.materialType == "Block" || (it.isWashroomEnabled && it.washroomMaterialType == "Block") } || (isBoundaryWallEnabled.value && boundaryMaterialType.value == "Block")
                 val hasSlab = houseRooms.value.any { it.hasRoof }
                 val hasWashroom = houseRooms.value.any { it.isWashroomEnabled }
 
@@ -348,7 +350,6 @@ class ProjectViewModel @Inject constructor(
 
     fun setProjectType(type: String) {
         projectType.value = type
-        nextStep()
     }
 
     fun clearError() {
@@ -515,6 +516,7 @@ class ProjectViewModel @Inject constructor(
                 floorAreaSqFt = floorAreaSqFt,
                 wallVolumeM3 = wallVol,
                 bricksCount = bricks,
+                blocksCount = blocks,
                 cementBags = wallCement,
                 sandVol = if (isImperial) wallSand * 35.3147 else wallSand,
                 hasRoof = rm.hasRoof,
@@ -525,6 +527,7 @@ class ProjectViewModel @Inject constructor(
                 hasWashroom = rm.isWashroomEnabled,
                 washroomFloorAreaSqFt = wFloorSqFt,
                 washroomBricksCount = wBricks,
+                washroomBlocksCount = wBlocks,
                 washroomCementBags = wCement + wTileCement,
                 washroomSandVol = if (isImperial) (wSand + wTileSand) * 35.3147 else wSand + wTileSand,
                 washroomTilesSqFt = wTileA,
@@ -675,6 +678,8 @@ class ProjectViewModel @Inject constructor(
                         
                         val washroomRoom = details.rooms.firstOrNull { it.room.name == "${r.name} - Attached Washroom" || it.room.name.startsWith("${r.name} - Attached Washroom") }
                         val hasWashroom = washroomRoom != null
+                        val washDoors = washroomRoom?.openings?.filter { it.type == OpeningType.DOOR } ?: emptyList()
+                        val washWindows = washroomRoom?.openings?.filter { it.type == OpeningType.WINDOW } ?: emptyList()
 
                         var qty = 1
                         var baseName = r.name
@@ -687,6 +692,16 @@ class ProjectViewModel @Inject constructor(
                             }
                         }
 
+                        val defaultDoorW = if (unitType.value == UnitType.METRIC) 0.9 else 3.0
+                        val defaultDoorH = if (unitType.value == UnitType.METRIC) 2.1 else 7.0
+                        val defaultWinW = if (unitType.value == UnitType.METRIC) 1.2 else 4.0
+                        val defaultWinH = if (unitType.value == UnitType.METRIC) 1.2 else 4.0
+
+                        val defaultWashDoorW = if (unitType.value == UnitType.METRIC) 0.75 else 2.5
+                        val defaultWashDoorH = if (unitType.value == UnitType.METRIC) 2.0 else 6.5
+                        val defaultWashWinW = if (unitType.value == UnitType.METRIC) 0.6 else 2.0
+                        val defaultWashWinH = if (unitType.value == UnitType.METRIC) 0.6 else 2.0
+
                         loadedRooms.add(
                             HouseRoomInput(
                                 id = r.id,
@@ -698,13 +713,24 @@ class ProjectViewModel @Inject constructor(
                                 thickness = if (unitType.value == UnitType.METRIC) 23.0 else 9.0,
                                 materialType = "Brick",
                                 doorsCount = doors.sumOf { it.quantity },
+                                doorsWidth = doors.firstOrNull()?.width ?: defaultDoorW,
+                                doorsHeight = doors.firstOrNull()?.height ?: defaultDoorH,
                                 windowsCount = windows.sumOf { it.quantity },
+                                windowsWidth = windows.firstOrNull()?.width ?: defaultWinW,
+                                windowsHeight = windows.firstOrNull()?.height ?: defaultWinH,
                                 hasRoof = r.includeCeiling,
                                 isWashroomEnabled = hasWashroom,
                                 washroomLength = washroomRoom?.room?.length ?: 0.0,
                                 washroomWidth = washroomRoom?.room?.width ?: 0.0,
                                 washroomHeight = washroomRoom?.room?.height ?: 0.0,
                                 washroomThickness = if (unitType.value == UnitType.METRIC) 11.5 else 4.5,
+                                washroomDoorsCount = washDoors.sumOf { it.quantity },
+                                washroomDoorsWidth = washDoors.firstOrNull()?.width ?: defaultWashDoorW,
+                                washroomDoorsHeight = washDoors.firstOrNull()?.height ?: defaultWashDoorH,
+                                washroomWindowsCount = washWindows.sumOf { it.quantity },
+                                washroomWindowsWidth = washWindows.firstOrNull()?.width ?: defaultWashWinW,
+                                washroomWindowsHeight = washWindows.firstOrNull()?.height ?: defaultWashWinH,
+                                washroomMaterialType = "Brick",
                                 quantity = qty
                             )
                         )

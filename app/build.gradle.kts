@@ -1,28 +1,55 @@
+import java.text.SimpleDateFormat
+import java.util.Date
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kapt)
+    alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.google.firebase.crashlytics)
 }
 
 android {
     namespace = "com.example.paintcalculatorestimator"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.paintcalculatorestimator"
+        applicationId = "com.hellowordapps.construction.cost.estimator"
         minSdk = 28
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        targetSdk = 36
+        versionCode = 2
+        versionName = "1.0.2"
 
+        val date = Date()
+        val formattedDate = SimpleDateFormat("ddMMyyyy").format(date)
+
+
+        setProperty("archivesBaseName", "ConstructionEstimator" + "_V" + versionName + "_" + formattedDate)
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
-        release {
+
+        debug {
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = false
+            resValue("string", "app_id", "ca-app-pub-3940256099942544~3347511713")
+            resValue ("string", "open_app_ad_splash", "ca-app-pub-3940256099942544/9257395921")
             isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+
+        release {
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = true
+            resValue("string", "app_id", "ca-app-pub-9728452702722475~4639338687")
+            resValue ("string", "open_app_ad_splash", "ca-app-pub-9728452702722475/3853794060")
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -38,6 +65,10 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
@@ -57,6 +88,13 @@ dependencies {
     // Room
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.androidx.lifecycle.process)
+    implementation(libs.androidx.constraintlayout)
+    implementation("androidx.cardview:cardview:1.0.0")
+    implementation(libs.firebase.config)
+    implementation(libs.androidx.appcompat)
     kapt(libs.room.compiler)
 
     // DataStore
@@ -70,6 +108,11 @@ dependencies {
     // SDP / SSP
     implementation(libs.sdp.android)
     implementation(libs.ssp.android)
+
+    // google ads
+    implementation(libs.play.services.ads)
+    implementation(libs.shimmer)
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

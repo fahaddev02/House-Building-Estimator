@@ -1,5 +1,9 @@
 package com.example.paintcalculatorestimator.presentation.cost
 
+import com.example.paintcalculatorestimator.ui.theme.EstimateTextField
+
+
+
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -98,7 +102,8 @@ fun CostCalculatorScreen(
                     }
                 }
             )
-        }
+        },
+        bottomBar = { com.example.paintcalculatorestimator.adsManager.NativeAdView() }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -122,7 +127,7 @@ fun CostCalculatorScreen(
                     }
 
                     item {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = paintQuantity,
                             onValueChange = { viewModel.paintQuantity.value = it },
                             label = { Text("Paint Required ($volUnitStr)") },
@@ -135,7 +140,7 @@ fun CostCalculatorScreen(
                     }
 
                     item {
-                        OutlinedTextField(
+                        EstimateTextField(
                             value = paintPrice,
                             onValueChange = { viewModel.paintPrice.value = it },
                             label = { Text("Paint Price per $volUnitStr ($currency)") },
@@ -168,7 +173,7 @@ fun CostCalculatorScreen(
 
                     if (includePrimer) {
                         item {
-                            OutlinedTextField(
+                            EstimateTextField(
                                 value = primerQuantity,
                                 onValueChange = { viewModel.primerQuantity.value = it },
                                 label = { Text("Primer Required ($volUnitStr)") },
@@ -181,7 +186,7 @@ fun CostCalculatorScreen(
                         }
 
                         item {
-                            OutlinedTextField(
+                            EstimateTextField(
                                 value = primerPrice,
                                 onValueChange = { viewModel.primerPrice.value = it },
                                 label = { Text("Primer Price per $volUnitStr ($currency)") },
@@ -220,7 +225,7 @@ fun CostCalculatorScreen(
 
                     if (!isLaborManual) {
                         item {
-                            OutlinedTextField(
+                            EstimateTextField(
                                 value = paintableArea,
                                 onValueChange = { viewModel.paintableArea.value = it },
                                 label = { Text("Paintable Area ($areaUnitStr)") },
@@ -233,7 +238,7 @@ fun CostCalculatorScreen(
                         }
 
                         item {
-                            OutlinedTextField(
+                            EstimateTextField(
                                 value = laborRate,
                                 onValueChange = { viewModel.laborRate.value = it },
                                 label = { Text("Labor Rate per $areaUnitStr ($currency)") },
@@ -246,7 +251,7 @@ fun CostCalculatorScreen(
                         }
                     } else {
                         item {
-                            OutlinedTextField(
+                            EstimateTextField(
                                 value = laborManualCost,
                                 onValueChange = { viewModel.laborManualCost.value = it },
                                 label = { Text("Total Labor Cost ($currency)") },
@@ -287,7 +292,7 @@ fun CostCalculatorScreen(
                     } else {
                         items(materials.size) { index ->
                             val mat = materials[index]
-                            Card(
+                            OutlinedCard(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -346,7 +351,7 @@ fun CostCalculatorScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    Card(
+                    OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -449,6 +454,14 @@ fun CostCalculatorScreen(
     }
 }
 
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, name = "Cost calculator")
+@Composable
+private fun CostCalculatorScreenPreview() {
+    com.example.paintcalculatorestimator.ui.theme.PaintCalculatorEstimatorTheme {
+        com.example.paintcalculatorestimator.ui.theme.CalculatorScreenPreview("Cost Calculator", "Build a clear paint, labor and materials estimate.", listOf("Paint required", "Paint price", "Labor cost"), "Estimate invoice summary")
+    }
+}
+
 @Composable
 fun AddMaterialDialog(
     onDismiss: () -> Unit,
@@ -485,7 +498,7 @@ fun AddMaterialDialog(
     }
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
+        OutlinedCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
@@ -498,7 +511,7 @@ fun AddMaterialDialog(
             ) {
                 Text(text = "Add Additional Expense Item", fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
-                OutlinedTextField(
+                EstimateTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Item Name (e.g. Brush, Roller)") },
@@ -508,7 +521,7 @@ fun AddMaterialDialog(
                     supportingText = if (nameError != null) { { Text(nameError!!) } } else null
                 )
 
-                OutlinedTextField(
+                EstimateTextField(
                     value = quantity,
                     onValueChange = { quantity = it },
                     label = { Text("Quantity") },
@@ -519,7 +532,7 @@ fun AddMaterialDialog(
                     supportingText = if (quantityError != null) { { Text(quantityError!!) } } else null
                 )
 
-                OutlinedTextField(
+                EstimateTextField(
                     value = price,
                     onValueChange = { price = it },
                     label = { Text("Unit Price") },
@@ -581,7 +594,7 @@ private fun sharePdfFile(context: Context, file: File) {
     try {
         val uri = FileProvider.getUriForFile(
             context,
-            "com.example.paintcalculatorestimator.fileprovider",
+            "${context.packageName}.fileprovider",
             file
         )
         val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {

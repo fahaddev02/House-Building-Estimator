@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "30620349960",
+    "project_id": "construction-cost-estima-95b23",
+    "storage_bucket": "construction-cost-estima-95b23.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:30620349960:android:eb733a2ed86297c89e03bd",
+        "android_client_info": {
+          "package_name": "com.hellowordapps.construction.cost.estimator"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCILhW3CCCOzf2-gapTeZod8SJ7Y5TzaFo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

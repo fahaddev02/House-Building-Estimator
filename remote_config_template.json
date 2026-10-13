@@ -1,0 +1,29 @@
+{
+  "remote_config_template": {
+    "isAllAdsEnabled": true,
+    "banner_splash": {
+      "enabled": true,
+      "ad_id": "ca-app-pub-3940256099942544/6300978111"
+    },
+    "app_open_splash": {
+      "enabled": true,
+      "ad_id": "ca-app-pub-3940256099942544/9257395921"
+    },
+    "interstitial_home": {
+      "enabled": true,
+      "ad_id": "ca-app-pub-3940256099942544/1033173712"
+    },
+    "banner_home": {
+      "enabled": true,
+      "ad_id": "ca-app-pub-3940256099942544/6300978111"
+    },
+    "interstitial_general": {
+      "enabled": true,
+      "ad_id": "ca-app-pub-3940256099942544/1033173712"
+    },
+    "native_general": {
+      "enabled": true,
+      "ad_id": "ca-app-pub-3940256099942544/2247696110"
+    }
+  }
+}

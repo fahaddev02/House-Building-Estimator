@@ -1,5 +1,9 @@
 package com.example.paintcalculatorestimator.presentation.paint
 
+import com.example.paintcalculatorestimator.ui.theme.EstimateTextField
+
+
+
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -96,7 +100,8 @@ fun PaintCalculatorScreen(
                     }
                 }
             )
-        }
+        },
+        bottomBar = { com.example.paintcalculatorestimator.adsManager.NativeAdView() }
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -139,7 +144,7 @@ fun PaintCalculatorScreen(
                     if (optionType == "Option A") {
                         // Option A Form
                         item {
-                            OutlinedTextField(
+                            EstimateTextField(
                                 value = manualArea,
                                 onValueChange = { viewModel.manualArea.value = it },
                                 label = { Text("Surface Area ($areaUnitStr)") },
@@ -177,7 +182,7 @@ fun PaintCalculatorScreen(
                         }
 
                         item {
-                            OutlinedTextField(
+                            EstimateTextField(
                                 value = dimLength,
                                 onValueChange = { viewModel.dimLength.value = it },
                                 label = { Text("Length ($unitStr)") },
@@ -190,7 +195,7 @@ fun PaintCalculatorScreen(
                         }
 
                         item {
-                            OutlinedTextField(
+                            EstimateTextField(
                                 value = dimWidth,
                                 onValueChange = { viewModel.dimWidth.value = it },
                                 label = { Text("Width ($unitStr)") },
@@ -204,7 +209,7 @@ fun PaintCalculatorScreen(
 
                         if (calculationMode != "Ceiling Area") {
                             item {
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = dimHeight,
                                     onValueChange = { viewModel.dimHeight.value = it },
                                     label = { Text("Wall Height ($unitStr)") },
@@ -216,7 +221,7 @@ fun PaintCalculatorScreen(
                                 )
                             }
                             item {
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = dimWalls,
                                     onValueChange = { viewModel.dimWalls.value = it },
                                     label = { Text("Number of Walls") },
@@ -248,7 +253,7 @@ fun PaintCalculatorScreen(
                                 }
                             }
                             if (coveragePreset == "Custom") {
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = customCoverage,
                                     onValueChange = { viewModel.customCoverage.value = it },
                                     label = { Text("Custom Coverage ($covUnitStr)") },
@@ -277,7 +282,7 @@ fun PaintCalculatorScreen(
                                 }
                             }
                             if (coatsPreset == "Custom") {
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = customCoats,
                                     onValueChange = { viewModel.customCoats.value = it },
                                     label = { Text("Custom Coats") },
@@ -306,7 +311,7 @@ fun PaintCalculatorScreen(
                                 }
                             }
                             if (wastagePreset == "Custom") {
-                                OutlinedTextField(
+                                EstimateTextField(
                                     value = customWastage,
                                     onValueChange = { viewModel.customWastage.value = it },
                                     label = { Text("Custom Wastage %") },
@@ -335,7 +340,7 @@ fun PaintCalculatorScreen(
                                 .padding(vertical = 4.dp),
                             shape = MaterialTheme.shapes.medium
                         ) {
-                            Text("Calculate Paint Volume", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("Calculate Paint Required", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -360,7 +365,7 @@ fun PaintCalculatorScreen(
                     val coats = if (coatsPreset == "Custom") customCoats else coatsPreset
                     val wastage = if (wastagePreset == "Custom") "$customWastage%" else "$wastagePreset%"
 
-                    Card(
+                    OutlinedCard(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -441,6 +446,14 @@ fun PaintCalculatorScreen(
                 }
             }
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(showBackground = true, name = "Paint calculator")
+@Composable
+private fun PaintCalculatorScreenPreview() {
+    com.example.paintcalculatorestimator.ui.theme.PaintCalculatorEstimatorTheme {
+        com.example.paintcalculatorestimator.ui.theme.CalculatorScreenPreview("Paint Calculator", "Calculate coverage, coats and wastage.", listOf("Surface area", "Coverage", "Number of coats"), "Paint volume results")
     }
 }
 
