@@ -1,6 +1,5 @@
 package com.example.paintcalculatorestimator.utils
 
-import kotlin.math.ceil
 
 object SlabCalculator {
 

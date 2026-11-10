@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,7 +49,7 @@ fun HomeScreen(navController: NavController, appPreferences: AppPreferences, vie
             RemoteConfigManager.INTERSTITIAL_HOME,
             RemoteConfigManager.TEST_INTERSTITIAL_ID
         )
-        if (context != null && adConfig.enabled) {
+        if (context != null && adConfig.enabled && adConfig.adId.isNotBlank()) {
             InterstitialHelper.loadAndShowInterstitialAd(
                 activity = context,
                 adId = adConfig.adId,

@@ -1,6 +1,7 @@
 package com.example.paintcalculatorestimator.utils
 
 import android.content.Context
+import com.example.paintcalculatorestimator.billing.EntitlementStore
 
 class PrefUtil(private val context: Context) {
 
@@ -10,10 +11,7 @@ class PrefUtil(private val context: Context) {
     }
 
     fun setPremium(value: Boolean) {
-        val prefs = context.getSharedPreferences(PREFS_NAME, 0)
-        val editor = prefs.edit()
-        editor.putBoolean(PREMIUM_KEY, value)
-        editor.apply()
+        EntitlementStore.from(context).confirm(value)
     }
 
     fun getPremium(): Boolean {

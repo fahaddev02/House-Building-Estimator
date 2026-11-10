@@ -71,15 +71,15 @@
 
                             <TextView
                                 android:id="@+id/ad_attribute"
-                                android:paddingHorizontal="@dimen/_4sdp"
-                                android:paddingVertical="@dimen/_2sdp"
+                                android:paddingHorizontal="4dp"
+                                android:paddingVertical="2dp"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:background="@drawable/btn_gradient"
                                 android:gravity="center"
                                 android:text="AD"
                                 android:textColor="@android:color/white"
-                                android:textSize="@dimen/_8sdp"
+                                android:textSize="8sp"
                                 android:textStyle="bold" />
 
                             <TextView

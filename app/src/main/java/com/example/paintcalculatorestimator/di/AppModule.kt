@@ -2,6 +2,7 @@ package com.example.paintcalculatorestimator.di
 
 import android.app.Application
 import androidx.room.Room
+import com.example.paintcalculatorestimator.billing.BillingManager
 import com.example.paintcalculatorestimator.data.local.PaintDatabase
 import com.example.paintcalculatorestimator.data.local.dao.ProjectDao
 import com.example.paintcalculatorestimator.data.preferences.AppPreferences
@@ -45,5 +46,11 @@ object AppModule {
     @Singleton
     fun provideAppPreferences(app: Application): AppPreferences {
         return AppPreferences(app)
+    }
+
+    @Provides
+    @Singleton
+    fun provideBillingManager(app: Application): BillingManager {
+        return BillingManager.getInstance(app)
     }
 }

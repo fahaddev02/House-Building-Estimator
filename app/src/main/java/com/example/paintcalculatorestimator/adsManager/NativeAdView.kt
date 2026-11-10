@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.isImeVisible
@@ -33,6 +31,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,10 +42,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import com.example.paintcalculatorestimator.billing.EntitlementStore
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.paintcalculatorestimator.R
-import com.example.paintcalculatorestimator.utils.PrefUtil
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
@@ -64,10 +64,15 @@ fun NativeAdView(
     defaultAdId: String = RemoteConfigManager.TEST_NATIVE_ID
 ) {
     val context = LocalContext.current
-    val isPremium = remember { PrefUtil(context).getPremium() }
-    val adConfig = remember { RemoteConfigManager.getAdConfig(adKey, defaultAdId) }
+    if (LocalInspectionMode.current) return
+    val entitlementStore = remember(context) { EntitlementStore.from(context) }
+    val canShowAds = rememberAdAccess()
+    val isConfigLoaded by RemoteConfigManager.isConfigLoaded.collectAsState()
+    val adConfig = remember(adKey, isConfigLoaded) {
+        RemoteConfigManager.getAdConfig(adKey, defaultAdId)
+    }
 
-    if (isPremium || !adConfig.enabled || adConfig.adId.isBlank()) {
+    if (!canShowAds || !adConfig.enabled || adConfig.adId.isBlank()) {
         return
     }
 
@@ -75,9 +80,16 @@ fun NativeAdView(
     var isAdFailed by remember { mutableStateOf(false) }
 
     DisposableEffect(adConfig.adId) {
+        var disposed = false
+        var ownedAd: NativeAd? = null
         val adLoader = AdLoader.Builder(context.applicationContext, adConfig.adId)
             .forNativeAd { nativeAd ->
-                loadedNativeAd = nativeAd
+                if (disposed || !entitlementStore.canShowAds) nativeAd.destroy()
+                else {
+                    ownedAd?.destroy()
+                    ownedAd = nativeAd
+                    loadedNativeAd = nativeAd
+                }
             }
             .withAdListener(object : AdListener() {
                 override fun onAdFailedToLoad(error: LoadAdError) {
@@ -91,10 +103,11 @@ fun NativeAdView(
             )
             .build()
 
-        adLoader.loadAd(AdRequest.Builder().build())
+        if (entitlementStore.canShowAds) adLoader.loadAd(AdRequest.Builder().build())
 
         onDispose {
-            loadedNativeAd?.destroy()
+            disposed = true
+            ownedAd?.destroy()
         }
     }
 

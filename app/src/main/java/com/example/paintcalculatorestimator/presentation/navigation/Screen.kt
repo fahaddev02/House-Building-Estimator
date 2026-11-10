@@ -2,6 +2,7 @@ package com.example.paintcalculatorestimator.presentation.navigation
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
+    object Premium : Screen("premium")
     object Onboarding : Screen("onboarding")
     object Home : Screen("home")
     object Settings : Screen("settings")

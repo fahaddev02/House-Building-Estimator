@@ -19,15 +19,14 @@ android {
         applicationId = "com.hellowordapps.construction.cost.estimator"
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.4"
 
         val date = Date()
         val formattedDate = SimpleDateFormat("ddMMyyyy").format(date)
 
 
         setProperty("archivesBaseName", "ConstructionEstimator" + "_V" + versionName + "_" + formattedDate)
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -67,9 +66,6 @@ android {
         compose = true
         buildConfig = true
     }
-    testOptions {
-        unitTests.isReturnDefaultValues = true
-    }
 }
 
 dependencies {
@@ -90,9 +86,7 @@ dependencies {
     implementation(libs.room.ktx)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
-    implementation(libs.androidx.lifecycle.process)
-    implementation(libs.androidx.constraintlayout)
-    implementation("androidx.cardview:cardview:1.0.0")
+    implementation(libs.androidx.cardview)
     implementation(libs.firebase.config)
     implementation(libs.androidx.appcompat)
     kapt(libs.room.compiler)
@@ -105,20 +99,11 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // SDP / SSP
-    implementation(libs.sdp.android)
-    implementation(libs.ssp.android)
-
     // google ads
     implementation(libs.play.services.ads)
-    implementation(libs.shimmer)
+    //in-app purchase
+    implementation (libs.billing)
 
 
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

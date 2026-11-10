@@ -5,6 +5,12 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.res.painterResource
+import com.example.paintcalculatorestimator.billing.BillingManager
+import com.example.paintcalculatorestimator.presentation.navigation.Screen
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -87,6 +93,9 @@ fun SettingsScreen(
     appPreferences: AppPreferences
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val billing = remember(context) { BillingManager.getInstance(context) }
+    val entitlement by billing.entitlement.state.collectAsState()
 
     val theme by appPreferences.themeFlow.collectAsState(initial = "SYSTEM")
     val unitType by appPreferences.unitTypeFlow.collectAsState(initial = "METRIC")
@@ -108,7 +117,12 @@ fun SettingsScreen(
         onCurrencySelect = { coroutineScope.launch { appPreferences.setCurrency(it) } },
         onDefaultCoverageChange = { coroutineScope.launch { appPreferences.setDefaultCoverage(it) } },
         onDefaultCoatsChange = { coroutineScope.launch { appPreferences.setDefaultCoats(it) } },
-        onDefaultWastageChange = { coroutineScope.launch { appPreferences.setDefaultWastage(it) } }
+        onDefaultWastageChange = { coroutineScope.launch { appPreferences.setDefaultWastage(it) } },
+        isPremium = entitlement.isPremium,
+        onPremiumClick = {
+            if (billing.entitlement.state.value.isPremium) billing.openSubscriptionManagement(context)
+            else navController.navigate(Screen.Premium.route) { launchSingleTop = true }
+        }
     )
 }
 
@@ -131,7 +145,9 @@ fun SettingsScreenContent(
     onCurrencySelect: (String) -> Unit,
     onDefaultCoverageChange: (Double) -> Unit,
     onDefaultCoatsChange: (Int) -> Unit,
-    onDefaultWastageChange: (Double) -> Unit
+    onDefaultWastageChange: (Double) -> Unit,
+    isPremium: Boolean = false,
+    onPremiumClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -168,6 +184,28 @@ fun SettingsScreenContent(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { Spacer(modifier = Modifier.height(8.dp)) }
+
+            item {
+                OutlinedCard(
+                    onClick = onPremiumClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                ) {
+                    Row(Modifier.fillMaxWidth().padding(18.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Image(painterResource(R.drawable.ic_premium_hero), contentDescription = null, modifier = Modifier.size(56.dp))
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Text(stringResource(if (isPremium) R.string.settings_premium_active else R.string.settings_get_premium),
+                                style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(stringResource(if (isPremium) R.string.settings_manage_subscription else R.string.settings_premium_description),
+                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
+                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
 
             // 1. Theme
             item {

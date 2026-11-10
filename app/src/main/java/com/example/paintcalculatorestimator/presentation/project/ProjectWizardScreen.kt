@@ -40,12 +40,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.paintcalculatorestimator.data.preferences.AppPreferences
 import com.example.paintcalculatorestimator.domain.model.UnitType
-import com.example.paintcalculatorestimator.presentation.navigation.Screen
-import com.example.paintcalculatorestimator.presentation.wall.ResultRow
 import com.example.paintcalculatorestimator.utils.HouseRoomInput
 import androidx.compose.ui.tooling.preview.Preview
 import java.util.Locale
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

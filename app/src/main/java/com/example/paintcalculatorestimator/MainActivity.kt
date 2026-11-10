@@ -13,9 +13,14 @@ import com.example.paintcalculatorestimator.presentation.navigation.NavGraph
 import com.example.paintcalculatorestimator.ui.theme.PaintCalculatorEstimatorTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import com.example.paintcalculatorestimator.billing.BillingManager
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    override fun onResume() {
+        super.onResume()
+        BillingManager.getInstance(this).refresh()
+    }
 
     @Inject
     lateinit var appPreferences: AppPreferences

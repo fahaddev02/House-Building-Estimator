@@ -23,7 +23,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.paintcalculatorestimator.PaintCalculatorApp
 import com.example.paintcalculatorestimator.R
 import com.example.paintcalculatorestimator.adsManager.BannerAdView
 import com.example.paintcalculatorestimator.adsManager.InterstitialHelper
@@ -32,7 +31,8 @@ import com.example.paintcalculatorestimator.data.preferences.AppPreferences
 import com.example.paintcalculatorestimator.presentation.navigation.Screen
 import com.example.paintcalculatorestimator.ui.theme.Lavender
 import com.example.paintcalculatorestimator.ui.theme.PaintCalculatorEstimatorTheme
-import com.example.paintcalculatorestimator.utils.PrefUtil
+import com.example.paintcalculatorestimator.billing.EntitlementStore
+import java.util.concurrent.atomic.AtomicBoolean
 import com.example.paintcalculatorestimator.utils.logE
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
@@ -49,6 +49,8 @@ fun SplashScreen(
     appPreferences: AppPreferences
 ) {
     val context = LocalContext.current as? Activity
+    val isCurrentScreen = remember { AtomicBoolean(true) }
+    DisposableEffect(Unit) { onDispose { isCurrentScreen.set(false) } }
     val coroutineScope = rememberCoroutineScope()
     val scale = remember { Animatable(0f) }
     val alpha = remember { Animatable(0f) }
@@ -57,13 +59,23 @@ fun SplashScreen(
     fun navigateToNextScreen() {
         coroutineScope.launch {
             val onboardingCompleted = appPreferences.isOnboardingCompletedFlow.first()
-            if (onboardingCompleted) {
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.Splash.route) { inclusive = true }
+            val entitlement = context?.let { EntitlementStore.from(it).state.value }
+            val isPremium = entitlement?.isPremium == true
+            when {
+                !isPremium && entitlement?.isResolved == true -> {
+                    navController.navigate(Screen.Premium.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
                 }
-            } else {
-                navController.navigate(Screen.Onboarding.route) {
-                    popUpTo(Screen.Splash.route) { inclusive = true }
+                onboardingCompleted -> {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+                else -> {
+                    navController.navigate(Screen.Onboarding.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
                 }
             }
         }
@@ -91,11 +103,7 @@ fun SplashScreen(
         }
 
         val isInternetAvailable = InterstitialHelper.isNetworkAvailable(context)
-        val appOpenConfig = RemoteConfigManager.getAdConfig(
-            RemoteConfigManager.APP_OPEN_SPLASH,
-            RemoteConfigManager.TEST_APP_OPEN_ID
-        )
-        val isPremium = PrefUtil(context).getPremium()
+        val entitlementStore = EntitlementStore.from(context)
 
         if (!isInternetAvailable) {
             // Internet NOT available -> move to next screen after 3 sec
@@ -103,9 +111,17 @@ fun SplashScreen(
             delay(3000L)
             navigateToNextScreen()
         } else {
+            // Wait for RemoteConfig fetch before reading ad config
+            RemoteConfigManager.ensureInitialized()
+            entitlementStore.awaitResolution()
+            val appOpenConfig = RemoteConfigManager.getAdConfig(
+                RemoteConfigManager.APP_OPEN_SPLASH,
+                RemoteConfigManager.TEST_APP_OPEN_ID
+            )
+
             // Internet IS available
-            if (!appOpenConfig.enabled || isPremium) {
-                context.logE("Splash: AppOpen Ad disabled or Premium user. Moving to next screen in 3s.")
+            if (!appOpenConfig.enabled || !entitlementStore.canShowAds) {
+                context.logE("Splash: AppOpen Ad disabled, empty ID, or Premium user. Moving to next screen in 3s.")
                 delay(3000L)
                 navigateToNextScreen()
             } else {
@@ -129,14 +145,15 @@ fun SplashScreen(
                 val request = AdRequest.Builder().build()
                 AppOpenAd.load(
                     context,
-                    appOpenConfig.adId,
+                    context.getString(R.string.open_app_ad_splash),
                     request,
                     object : AppOpenAd.AppOpenAdLoadCallback() {
                         override fun onAdLoaded(ad: AppOpenAd) {
                             context.logE("Splash: AppOpen Ad Loaded successfully.")
                             timeoutJob.cancel() // Cancel 21s timer
 
-                            if (isNavigated) return
+                            if (isNavigated || !isCurrentScreen.get()) return
+                            if (!entitlementStore.canShowAds || context.isFinishing || context.isDestroyed) { safeNavigateNext(); return }
 
                             com.example.paintcalculatorestimator.utils.AdLoadingDialog.showLoadingDialog(context)
 
@@ -144,24 +161,22 @@ fun SplashScreen(
                                 override fun onAdDismissedFullScreenContent() {
                                     context.logE("Splash: AppOpen Ad Dismissed by user.")
                                     com.example.paintcalculatorestimator.utils.AdLoadingDialog.hideLoadingDialog()
-                                    (context.applicationContext as? PaintCalculatorApp)?.isAppOpenShowing = false
                                     safeNavigateNext()
                                 }
 
                                 override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                                     context.logE("Splash: AppOpen Ad Failed to show: ${adError.message}")
                                     com.example.paintcalculatorestimator.utils.AdLoadingDialog.hideLoadingDialog()
-                                    (context.applicationContext as? PaintCalculatorApp)?.isAppOpenShowing = false
                                     safeNavigateNext()
                                 }
 
-                                override fun onAdShowedFullScreenContent() {
-                                    context.logE("Splash: AppOpen Ad Showed.")
-                                    (context.applicationContext as? PaintCalculatorApp)?.isAppOpenShowing = true
-                                }
                             }
                             // Show ad and STOP moving to next screen until user dismisses ad
-                            ad.show(context)
+                            if (entitlementStore.canShowAds) ad.show(context)
+                            else {
+                                com.example.paintcalculatorestimator.utils.AdLoadingDialog.hideLoadingDialog()
+                                safeNavigateNext()
+                            }
                         }
 
                         override fun onAdFailedToLoad(loadAdError: LoadAdError) {

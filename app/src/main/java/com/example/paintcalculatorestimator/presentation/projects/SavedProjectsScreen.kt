@@ -12,11 +12,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +30,6 @@ import com.example.paintcalculatorestimator.R
 import com.example.paintcalculatorestimator.data.preferences.AppPreferences
 import com.example.paintcalculatorestimator.domain.model.*
 import com.example.paintcalculatorestimator.adsManager.NativeAdView
-import com.example.paintcalculatorestimator.presentation.home.RecentProjectCard
 import com.example.paintcalculatorestimator.presentation.navigation.Screen
 import java.text.SimpleDateFormat
 import java.util.Date
